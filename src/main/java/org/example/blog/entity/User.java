@@ -13,9 +13,13 @@ public class User {
 
     @TableId(type = IdType.AUTO) //标记主键
     private long id;
+
     private String email;
+
     private String password;
+
     private String nickname;
+
     private LocalDateTime createTime; //这里用 Java 的驼峰命名,数据库建表是因为配置了 map-underscore-to-camel-case: true 自动映射
 
 //    public long getId(){ return id; }
