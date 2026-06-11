@@ -3,6 +3,7 @@ package org.example.blog.interceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.blog.util.JwtUtil;
+import org.example.blog.util.UserContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -25,6 +26,7 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         try{
             Long userId = JwtUtil.getUserId(token);
+            UserContext.set(userId); // 存入上下文
             request.setAttribute("userId",userId);
             return true;
         } catch (Exception e){

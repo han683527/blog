@@ -1,10 +1,10 @@
 package org.example.blog.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
+import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +21,8 @@ public class CommentController {
     }
 
     @PostMapping
-    public String createComment(@Valid @RequestBody CommentRequest commentRequest, HttpServletRequest httpRequest){
-        Long userId = (Long) httpRequest.getAttribute("userId");
+    public String createComment(@Valid @RequestBody CommentRequest commentRequest){
+        Long userId = UserContext.get();
         commentService.createComment(userId,commentRequest.getArticleId(),commentRequest.getContent());
         return "评论成功";
     }
