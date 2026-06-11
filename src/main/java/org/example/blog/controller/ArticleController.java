@@ -11,17 +11,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/article")
+@RequiredArgsConstructor // 采用 @RequiredArgsConstructor 构造器的注解简化了注入
 public class ArticleController {
 
-    private ArticleService articleService;
-
-    public ArticleController(ArticleService articleService){
-        this.articleService = articleService;
-    }
+    private final ArticleService articleService;
 
     @PostMapping
-    public String createArticle(@Valid @RequestBody ArticleRequest articleRequest, HttpServletRequest httpRequest){
-        Long userId = (Long) httpRequest.getAttribute("userId");
+    public String createArticle(@Valid @RequestBody ArticleRequest articleRequest){
+        Long userId = UserContext.get();
         articleService.createArticle(userId,articleRequest.getTitle(),articleRequest.getContent());
         return "发布成功";
     }

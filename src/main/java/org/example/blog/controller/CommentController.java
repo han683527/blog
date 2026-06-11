@@ -1,6 +1,7 @@
 package org.example.blog.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
@@ -12,13 +13,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/comment")
+@RequiredArgsConstructor
 public class CommentController {
 
-    private CommentService commentService;
+    private final CommentService commentService;
 
-    public CommentController(CommentService commentService){
-        this.commentService = commentService;
-    }
+//    public CommentController(CommentService commentService){
+//        this.commentService = commentService;
+//    }
 
     @PostMapping
     public String createComment(@Valid @RequestBody CommentRequest commentRequest){
