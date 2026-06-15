@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.UpdateCommentRequest;
+import org.example.blog.dto.response.Result;
 import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
 import org.example.blog.util.UserContext;
@@ -23,32 +24,33 @@ public class CommentController {
 //    }
 
     @PostMapping
-    public String createComment(@Valid @RequestBody CommentRequest commentRequest){
+    public Result<String> createComment(@Valid @RequestBody CommentRequest commentRequest){
         Long userId = UserContext.get();
         commentService.createComment(userId,commentRequest.getArticleId(),commentRequest.getContent());
-        return "评论成功";
+//        return "评论成功";
+        return Result.success("评论成功");
     }
 
     @GetMapping
-    public List<Comment> getAllComment(){
-        return commentService.getAllComment();
+    public Result<List<Comment>> getAllComment(){
+        return Result.success(commentService.getAllComment());
     }
 
     @GetMapping("/{id}")
-    public Comment getCommentById(@PathVariable Long id){
-        return commentService.getCommentById(id);
+    public Result<Comment> getCommentById(@PathVariable Long id){
+        return Result.success(commentService.getCommentById(id));
     }
 
     @DeleteMapping("/{id}")
-    public String deleteCommentById(@PathVariable Long id){
+    public Result<String> deleteCommentById(@PathVariable Long id){
         commentService.deleteCommentById(id);
-        return "删除成功";
+        return Result.success("删除成功");
     }
 
     @PutMapping("/{id}")
-    public String updateCommentById(@Valid @RequestBody UpdateCommentRequest commentRequest ,
+    public Result<String> updateCommentById(@Valid @RequestBody UpdateCommentRequest commentRequest ,
                                     @PathVariable Long id){
         commentService.updateCommentById(id,commentRequest.getContent());
-        return "修改成功";
+        return Result.success("修改成功");
     }
 }
