@@ -20,6 +20,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(tokenInterceptor)
                 .addPathPatterns("/**")                 //拦截所有请求
                 .excludePathPatterns("/user/register",  //放行特定请求
-                        "/user/login");
+                        "/user/login",
+                        "/swagger-ui/**",
+                        "/v3/api-docs/**");
     }
 }
