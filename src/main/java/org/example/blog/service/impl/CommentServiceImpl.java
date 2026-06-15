@@ -6,6 +6,7 @@ import org.example.blog.entity.Comment;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.CommentService;
+import org.example.blog.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,6 +52,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
         if(comment == null){
             throw new RuntimeException("评论不存在");
         }
+        if(comment.getUserId() != UserContext.get()){
+            throw new RuntimeException("不能删除别人的评论");
+        }
         this.removeById(id);
     }
 
@@ -59,6 +63,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
         Comment comment = this.getById(id);
         if(comment == null){
             throw new RuntimeException("评论不存在");
+        }
+        if(comment.getUserId() != UserContext.get()){
+            throw new RuntimeException("不能修改别人的评论");
         }
         comment.setContent(content);
         this.updateById(comment);
