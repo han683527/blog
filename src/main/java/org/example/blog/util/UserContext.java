@@ -1,6 +1,6 @@
 package org.example.blog.util;
 
-//使用 ThreadLocal 全局变量的请求(上下文) 替代 HttpServletRequest 传递 userId
+// 使用 ThreadLocal 全局变量的请求(上下文) 替代 HttpServletRequest 传递 userId
 public class UserContext {
     private static final ThreadLocal<Long> USER_ID = new ThreadLocal<>();
 

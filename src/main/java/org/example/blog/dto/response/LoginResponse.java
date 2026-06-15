@@ -11,7 +11,8 @@ public class LoginResponse {
 
     private String email;
 
-    private String password;
+    //最好不暴露密码
+//    private String password;
 
     private String nickname;
 }

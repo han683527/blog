@@ -4,5 +4,5 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.example.blog.entity.User;
 
 
-public interface UserMapper extends BaseMapper <User> {
+public interface UserMapper extends BaseMapper<User> {
 }

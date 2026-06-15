@@ -1,22 +1,24 @@
 package org.example.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.entity.User;
 import org.example.blog.mapper.UserMapper;
 import org.example.blog.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements UserService {
 
     //声明 UserMapper 字段,用于操作数据库(Spring 通过 @MapperScan 扫描)
-    private final UserMapper userMapper;
+//    private final UserMapper userMapper;
 
     //Spring 注入得到 UserMapper 对象,调用其方法对数据库进行操作;用 @Autowired 同理(只是写的不过于明确)
-    public UserServiceImpl(UserMapper userMapper){
-        this.userMapper = userMapper;
-    }
+//    public UserServiceImpl(UserMapper userMapper){
+//        this.userMapper = userMapper;
+//    }
 
     @Override
     public void register(String email,String password,String nickname) {
@@ -26,7 +28,7 @@ public class UserServiceImpl implements UserService {
         //1.检查邮箱是否已被注册
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>(); //mybatis-plus 的查询条件构造器,用来组装 SQL 的 where 条件
         wrapper.eq(User::getEmail,email); //相当于 SQL where email = "输入的邮箱"
-        if(userMapper.selectCount(wrapper)>0){ //统计符合条件的记录有几条->大于0抛出异常
+        if(this.count(wrapper)>0){ //统计符合条件的记录有几条->大于0抛出异常
             throw new RuntimeException("邮箱已被注册");
         }
 
@@ -40,7 +42,7 @@ public class UserServiceImpl implements UserService {
         user.setEmail(email);
         user.setPassword(encodePassword);
         user.setNickname(nickname);
-        userMapper.insert(user);
+        this.save(user);
     }
 
     @Override
@@ -48,8 +50,8 @@ public class UserServiceImpl implements UserService {
         //1.查看数据库有没有这个邮箱
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>();
         wrapper.eq(User::getEmail,email);
-        User user = userMapper.selectOne(wrapper); //找到邮箱后获取
-
+        User user = this.getOne(wrapper);
+        //找到邮箱后获取
         if(user == null){
             throw new RuntimeException("邮箱未注册");
         }
