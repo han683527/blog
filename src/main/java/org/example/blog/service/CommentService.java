@@ -5,11 +5,15 @@ import org.example.blog.entity.Comment;
 
 import java.util.List;
 
-public interface CommentService  {
+public interface CommentService extends IService<Comment> {
 
     void createComment(Long userId,Long articleId,String content);
 
-    List<Comment> getCommentByArticleId(Long articleId);
+    Comment getCommentById(Long id);
 
+    List<Comment> getAllComment();
 
+    void deleteCommentById(Long id);
+
+    void updateCommentById(Long id,String content);
 }

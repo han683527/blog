@@ -1,6 +1,7 @@
 package org.example.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.entity.Comment;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
@@ -11,10 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class CommentServiceImpl implements CommentService {
-
-    @Autowired
-    private CommentMapper commentMapper;
+public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> implements CommentService {
 
     @Autowired
     private ArticleMapper articleMapper;
@@ -28,14 +26,41 @@ public class CommentServiceImpl implements CommentService {
         comment.setContent(content);
         comment.setArticleId(articleId);
         comment.setUserId(userId);
-        commentMapper.insert(comment);
+        this.save(comment);
     }
 
-    //按照文章查评论
+    //按照 id 查找评论
     @Override
-    public List<Comment> getCommentByArticleId(Long articleId) {
-        LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<Comment>();
-        wrapper.eq(Comment::getArticleId,articleId);
-        return commentMapper.selectList(wrapper);
+    public Comment getCommentById(Long id){
+        Comment comment = this.getById(id);
+        if(comment == null){
+            throw new RuntimeException("评论不存在");
+        }
+        return comment;
+    }
+
+    //按照文章查所有评论
+    @Override
+    public List<Comment> getAllComment() {
+        return this.list();
+    }
+
+    @Override
+    public void deleteCommentById(Long id) {
+        Comment comment = this.getById(id);
+        if(comment == null){
+            throw new RuntimeException("评论不存在");
+        }
+        this.removeById(id);
+    }
+
+    @Override
+    public void updateCommentById(Long id, String content) {
+        Comment comment = this.getById(id);
+        if(comment == null){
+            throw new RuntimeException("评论不存在");
+        }
+        comment.setContent(content);
+        this.updateById(comment);
     }
 }

@@ -3,11 +3,11 @@ package org.example.blog.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
+import org.example.blog.dto.request.UpdateCommentRequest;
 import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
 import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 
@@ -29,12 +29,26 @@ public class CommentController {
         return "评论成功";
     }
 
-    @GetMapping("/article/{articleId}")
-    public Object getCommentByArticleId(@PathVariable Long articleId){
-        List<Comment> comment = commentService.getCommentByArticleId(articleId);
-        if(comment.isEmpty()){
-            return "暂无评论";
-        }
-        return comment;
+    @GetMapping
+    public List<Comment> getAllComment(){
+        return commentService.getAllComment();
+    }
+
+    @GetMapping("/{id}")
+    public Comment getCommentById(@PathVariable Long id){
+        return commentService.getCommentById(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteCommentById(@PathVariable Long id){
+        commentService.deleteCommentById(id);
+        return "删除成功";
+    }
+
+    @PutMapping("/{id}")
+    public String updateCommentById(@Valid @RequestBody UpdateCommentRequest commentRequest ,
+                                    @PathVariable Long id){
+        commentService.updateCommentById(id,commentRequest.getContent());
+        return "修改成功";
     }
 }
