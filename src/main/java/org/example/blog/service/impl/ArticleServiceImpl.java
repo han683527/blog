@@ -7,6 +7,7 @@ import org.example.blog.entity.Comment;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.ArticleService;
+import org.example.blog.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -52,6 +53,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     public void deleteArticleById(Long id) {
         Article article = this.getOptById(id)
                 .orElseThrow(() -> new RuntimeException("文章不存在,无法删除"));
+        if(article.getAuthorId() != UserContext.get()){
+            throw new RuntimeException("不能删除别人的文章");
+        }
+        //删文章后,相关的评论直接全部删除
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<Comment>();
         wrapper.eq(Comment::getArticleId,id);
         commentMapper.delete(wrapper);
@@ -62,6 +67,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     public void updateArticleById(Long id, String title, String content) {
         Article article =  this.getOptById(id)
                 .orElseThrow(() -> new NoSuchElementException("文章不存在"));
+        if(article.getAuthorId() != UserContext.get()){
+            throw new RuntimeException("不能修改别人的文章");
+        }
         article.setTitle(title);
         article.setContent(content);
         this.updateById(article);
