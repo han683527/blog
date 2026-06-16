@@ -1,5 +1,7 @@
 package org.example.blog.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
@@ -32,8 +34,9 @@ public class CommentController {
     }
 
     @GetMapping
-    public Result<List<Comment>> getAllComment(){
-        return Result.success(commentService.getAllComment());
+    public Result<IPage<Comment>> getAllComment(@RequestParam(defaultValue = ("1")) int page,
+                                                @RequestParam(defaultValue = "10") int size) {
+        return Result.success(commentService.pageComment(page,size));
     }
 
     @GetMapping("/{id}")

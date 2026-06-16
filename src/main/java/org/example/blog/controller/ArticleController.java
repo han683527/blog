@@ -26,6 +26,11 @@ public class ArticleController {
         return Result.success("发布成功");
     }
 
+//    // 相比与一次查询所有的数据,可以用分页查询显示数据,不用一次性全部返回参数(这个过程要时间渲染)
+//    @GetMapping
+//    public Result<Article> getAllArticle(){
+//        return Result.success(articleService.getAllArticle());
+//    }
     @GetMapping
     public Result<IPage<Article>> getAllArticle(@RequestParam(defaultValue = "1") int page,
                                                 @RequestParam(defaultValue = "10") int size){

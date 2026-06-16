@@ -1,6 +1,8 @@
 package org.example.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.entity.Article;
 import org.example.blog.entity.Comment;
@@ -43,6 +45,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         return article;
     }
 
+    @Override
+    public IPage<Article> searchArticle(String keyword,int page,int size) {
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(Article::getTitle,keyword);
+        return this.page(new Page<>(page,size),wrapper);
+    }
+
 //    @Override
 //    public void deleteAllArticle() {
 //        commentMapper.delete(null);
@@ -73,5 +82,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         article.setTitle(title);
         article.setContent(content);
         this.updateById(article);
+    }
+
+    @Override
+    public IPage<Article> pageArticle(int page, int size) {
+        return this.page(new Page<>(page, size));
     }
 }

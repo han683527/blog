@@ -1,6 +1,8 @@
 package org.example.blog.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.entity.Comment;
 import org.example.blog.mapper.ArticleMapper;
@@ -69,5 +71,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
         }
         comment.setContent(content);
         this.updateById(comment);
+    }
+
+    @Override
+    public IPage<Comment> pageComment(int page,int size) {
+        return this.page(new Page<>(page,size));
     }
 }
