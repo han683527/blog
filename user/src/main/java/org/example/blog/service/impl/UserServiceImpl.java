@@ -3,6 +3,8 @@ package org.example.blog.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.entity.User;
+import org.example.blog.exception.BadRequestException;
+import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.UserMapper;
 import org.example.blog.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +31,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>(); //mybatis-plus 的查询条件构造器,用来组装 SQL 的 where 条件
         wrapper.eq(User::getEmail,email); //相当于 SQL where email = "输入的邮箱"
         if(this.count(wrapper)>0){ //统计符合条件的记录有几条->大于0抛出异常
-            throw new RuntimeException("邮箱已被注册");
+            throw new BadRequestException("邮箱已被注册");
         }
 
         //解析这一块功能的代码以及涉及知识点
@@ -53,13 +55,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         User user = this.getOne(wrapper);
         //找到邮箱后获取
         if(user == null){
-            throw new RuntimeException("邮箱未注册");
+            throw new NotFoundException("邮箱未注册");
         }
 
         //2.检查密码是否匹配
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         if(!passwordEncoder.matches(password,user.getPassword())){
-            throw new RuntimeException("密码错误");
+            throw new BadRequestException("密码错误");
         }
 
         return user;

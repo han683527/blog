@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Comment;
+import org.example.blog.exception.ForbiddenException;
+import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.CommentService;
@@ -24,7 +26,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
     @Override
     public void createComment(Long userId,Long articleId,String content) {
         if(articleMapper.selectById(articleId) == null){
-            throw new RuntimeException("文章不存在");
+            throw new NotFoundException("文章不存在");
         }
         Comment comment = new Comment();
         comment.setContent(content);
@@ -38,7 +40,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
     public Comment getCommentById(Long id){
         Comment comment = this.getById(id);
         if(comment == null){
-            throw new RuntimeException("评论不存在");
+            throw new NotFoundException("评论不存在");
         }
         return comment;
     }
@@ -53,10 +55,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
     public void deleteCommentById(Long id) {
         Comment comment = this.getById(id);
         if(comment == null){
-            throw new RuntimeException("评论不存在");
+            throw new NotFoundException("评论不存在");
         }
         if(comment.getUserId() != UserContext.get()){
-            throw new RuntimeException("不能删除别人的评论");
+            throw new ForbiddenException("不能删除别人的评论");
         }
         this.removeById(id);
     }
@@ -65,10 +67,10 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
     public void updateCommentById(Long id, String content) {
         Comment comment = this.getById(id);
         if(comment == null){
-            throw new RuntimeException("评论不存在");
+            throw new NotFoundException("评论不存在");
         }
         if(comment.getUserId() != UserContext.get()){
-            throw new RuntimeException("不能修改别人的评论");
+            throw new ForbiddenException("不能修改别人的评论");
         }
         comment.setContent(content);
         this.updateById(comment);

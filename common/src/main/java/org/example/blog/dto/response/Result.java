@@ -28,4 +28,12 @@ public class Result<T>{
         r.data = null;
         return r;
     }
+
+    public static <T> Result<T> error(int code,String message){
+        Result<T> r = new Result<>();
+        r.code = code;
+        r.message = message;
+        r.data = null;
+        return r;
+    }
 }

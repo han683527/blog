@@ -8,6 +8,8 @@ import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
 import org.example.blog.entity.Comment;
+import org.example.blog.exception.ForbiddenException;
+import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.ArticleService;
@@ -15,8 +17,6 @@ import org.example.blog.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import java.util.NoSuchElementException;
-
 
 @Service
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
@@ -42,7 +42,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     public Article getArticleById(Long id) {
         Article article = this.getById(id);
         if (article == null) {
-            throw new RuntimeException("文章不存在");
+            throw new NotFoundException("文章不存在");
         }
         return article;
     }
@@ -68,9 +68,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Override
     public void deleteArticleById(Long id) {
         Article article = this.getOptById(id)
-                .orElseThrow(() -> new RuntimeException("文章不存在,无法删除"));
+                .orElseThrow(() -> new NotFoundException("文章不存在,无法删除"));
         if(article.getAuthorId() != UserContext.get()){
-            throw new RuntimeException("不能删除别人的文章");
+            throw new ForbiddenException("不能删除别人的文章");
         }
         //删文章后,相关的评论直接全部删除
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<Comment>();
@@ -82,9 +82,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Override
     public void updateArticleById(Long id, String title, String content) {
         Article article =  this.getOptById(id)
-                .orElseThrow(() -> new NoSuchElementException("文章不存在"));
+                .orElseThrow(() -> new NotFoundException("文章不存在"));
         if(article.getAuthorId() != UserContext.get()){
-            throw new RuntimeException("不能修改别人的文章");
+            throw new ForbiddenException("不能修改别人的文章");
         }
         article.setTitle(title);
         article.setContent(content);
