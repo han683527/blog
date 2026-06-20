@@ -1,9 +1,11 @@
 package org.example.blog.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.example.blog.dto.response.ArticleResponse;
+import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
 import org.example.blog.entity.Comment;
 import org.example.blog.mapper.ArticleMapper;
@@ -46,10 +48,15 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public IPage<Article> searchArticle(String keyword,int page,int size) {
+    public PageResponse<ArticleResponse> searchArticle(String keyword, int page, int size) {
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(Article::getTitle,keyword);
-        return this.page(new Page<>(page,size),wrapper);
+        Page<Article> p = this.page(new Page<>(page,size),wrapper);
+        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(),ArticleResponse.class);
+        PageResponse<ArticleResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
     }
 
 //    @Override
@@ -85,7 +92,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public IPage<Article> pageArticle(int page, int size) {
-        return this.page(new Page<>(page, size));
+    public PageResponse<ArticleResponse> pageArticle(int page, int size) {
+        Page<Article> p = this.page(new Page<>(page,size));
+        // Hutool 的根据方法:内部调用反射遍历 Article 的 getter,找到 ArticleResponse 里同名的字段,复制过去
+        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(),ArticleResponse.class);
+        PageResponse<ArticleResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
     }
 }

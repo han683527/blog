@@ -1,7 +1,8 @@
 package org.example.blog.service;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.example.blog.dto.response.ArticleResponse;
+import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
 
 import java.util.List;
@@ -26,8 +27,8 @@ public interface ArticleService extends IService<Article> {
     void updateArticleById(Long id,String title,String content);
 
     // 分页
-    IPage<Article> pageArticle(int page,int size);
+    PageResponse<ArticleResponse> pageArticle(int page, int size);
 
     //按标题进行模糊查找
-    IPage<Article> searchArticle(String keyword,int page,int size);
+    PageResponse<ArticleResponse> searchArticle(String keyword,int page,int size);
 }

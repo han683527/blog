@@ -1,9 +1,10 @@
 package org.example.blog.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.example.blog.dto.response.CommentResponse;
+import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Comment;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
@@ -74,7 +75,12 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
     }
 
     @Override
-    public IPage<Comment> pageComment(int page,int size) {
-        return this.page(new Page<>(page,size));
+    public PageResponse<CommentResponse> pageComment(int page, int size) {
+        Page<Comment> p = this.page(new Page<>(page,size));
+        List<CommentResponse> list = BeanUtil.copyToList(p.getRecords(),CommentResponse.class);
+        PageResponse<CommentResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
     }
 }

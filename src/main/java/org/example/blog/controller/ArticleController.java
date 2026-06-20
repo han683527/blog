@@ -1,15 +1,15 @@
 package org.example.blog.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.ArticleRequest;
+import org.example.blog.dto.response.ArticleResponse;
+import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.Article;
 import org.example.blog.service.ArticleService;
 import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 
 @RestController
@@ -32,14 +32,21 @@ public class ArticleController {
 //        return Result.success(articleService.getAllArticle());
 //    }
     @GetMapping
-    public Result<IPage<Article>> getAllArticle(@RequestParam(defaultValue = "1") int page,
-                                                @RequestParam(defaultValue = "10") int size){
+    public Result<PageResponse<ArticleResponse>> getAllArticle(@RequestParam(defaultValue = "1") int page,
+                                                               @RequestParam(defaultValue = "10") int size){
         return Result.success(articleService.pageArticle(page,size));
     }
 
     @GetMapping("/{id}")
     public Result<Article> getArticleById(@PathVariable Long id){
         return Result.success(articleService.getArticleById(id));
+    }
+
+    @GetMapping("/search/{keyword}")
+    public Result<PageResponse<ArticleResponse>> searchArticle(@PathVariable String keyword,
+                                                @RequestParam(defaultValue = "1") int page,
+                                                @RequestParam(defaultValue = "10") int size){
+        return Result.success(articleService.searchArticle(keyword,page,size));
     }
 
 //    @DeleteMapping

@@ -1,17 +1,17 @@
 package org.example.blog.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.UpdateCommentRequest;
+import org.example.blog.dto.response.CommentResponse;
+import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
 import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
+
 
 
 @RestController
@@ -34,8 +34,8 @@ public class CommentController {
     }
 
     @GetMapping
-    public Result<IPage<Comment>> getAllComment(@RequestParam(defaultValue = ("1")) int page,
-                                                @RequestParam(defaultValue = "10") int size) {
+    public Result<PageResponse<CommentResponse>> getAllComment(@RequestParam(defaultValue = ("1")) int page,
+                                                               @RequestParam(defaultValue = "10") int size) {
         return Result.success(commentService.pageComment(page,size));
     }
 
