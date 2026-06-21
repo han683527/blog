@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 public class Article {
 
     @TableId(type = IdType.AUTO)
-    private long id;
+    private Long id;
 
     private String title;
 
     private String content;
 
-    private long authorId;
+    private Long authorId;
 
     private LocalDateTime createTime;
 

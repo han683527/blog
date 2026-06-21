@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 public class Comment {
 
     @TableId(type = IdType.AUTO)
-    private long id;
+    private Long id;
 
     private String content;
 
-    private long userId;
+    private Long userId;
 
-    private long articleId;
+    private Long articleId;
 
     private LocalDateTime createTime;
 

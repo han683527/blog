@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class User {
 
     @TableId(type = IdType.AUTO) //标记主键
-    private long id;
+    private Long id;
 
     private String email;
 
