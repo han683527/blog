@@ -20,4 +20,6 @@ public interface CommentService extends IService<Comment> {
     void updateCommentById(Long id,String content);
 
     PageResponse<CommentResponse> pageComment(int page, int size);
+
+    PageResponse<CommentResponse> pageCommentByArticleId(Long articleId, int page, int size);
 }

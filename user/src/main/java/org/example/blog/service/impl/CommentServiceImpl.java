@@ -1,6 +1,7 @@
 package org.example.blog.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.dto.response.CommentResponse;
@@ -81,6 +82,21 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
         Page<Comment> p = this.page(new Page<>(page,size));
         List<CommentResponse> list = BeanUtil.copyToList(p.getRecords(),CommentResponse.class);
         PageResponse<CommentResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
+    }
+
+    @Override
+    public PageResponse<CommentResponse> pageCommentByArticleId(Long articleId, int page, int size) {
+        if(articleMapper.selectById(articleId) == null){
+            throw new NotFoundException("文章不存在");
+        }
+        LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Comment::getArticleId,articleId);
+        Page<Comment> p = this.page(new Page<>(page,size),wrapper);
+        List<CommentResponse> list = BeanUtil.copyToList(p.getRecords(),CommentResponse.class);
+        PageResponse<CommentResponse> response = new PageResponse<CommentResponse>();
         response.setTotal(p.getTotal());
         response.setList(list);
         return response;

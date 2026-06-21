@@ -34,7 +34,7 @@ public class CommentController {
     }
 
     @GetMapping
-    public Result<PageResponse<CommentResponse>> getAllComment(@RequestParam(defaultValue = ("1")) int page,
+    public Result<PageResponse<CommentResponse>> getAllComment(@RequestParam(defaultValue = "1") int page,
                                                                @RequestParam(defaultValue = "10") int size) {
         return Result.success(commentService.pageComment(page,size));
     }

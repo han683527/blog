@@ -13,6 +13,26 @@ public class ArticleController {
 }
 ```
 
+## RESTful 设计风格
+
+### 核心思想
+
+**URL 表示"是什么资源"，HTTP 方法表示"做什么操作"。**
+
+```
+非 RESTful：
+GET  /getArticle?id=3
+POST /deleteArticle
+POST /createArticle
+
+RESTful：
+GET    /article/3     → 查文章3
+DELETE /article/3     → 删文章3
+POST   /article       → 新增文章
+```
+
+URL 只表达"什么东西"，方法表达"干什么"。
+
 ## 路由注解
 
 | 注解 | HTTP 方法 | 语义 |
@@ -22,14 +42,33 @@ public class ArticleController {
 | `@PutMapping` | PUT | 全量修改 |
 | `@DeleteMapping` | DELETE | 删除 |
 
-**RESTful 设计：**
+**本项目 API 设计：**
 ```
-GET    /article          → 查询列表
-GET    /article/{id}     → 查询单个
-POST   /article          → 新增
-PUT    /article/{id}     → 修改
-DELETE /article/{id}     → 删除
+GET    /article              → 文章列表
+GET    /article/{id}         → 文章详情
+GET    /article/search/{kw}  → 搜索文章
+POST   /article              → 新增文章
+PUT    /article/{id}         → 修改文章
+DELETE /article/{id}         → 删除文章
+GET    /article/{id}/comments → 文章下的评论（子资源）
+GET    /comment              → 评论列表
+POST   /comment              → 新增评论
+PUT    /comment/{id}         → 修改评论
+DELETE /comment/{id}         → 删除评论
 ```
+
+`/article/{id}/comments` 这种路径表示评论是文章的子资源，URL 读起来就是"文章3的评论"。新增评论不需要在 URL 里写文章 ID，因为文章 ID 在请求体里。
+
+### 子资源
+
+资源可以嵌套，表达从属关系：
+
+```
+GET /article/3/comments   → 查看文章3下的评论
+GET /user/1/articles      → 查看用户1的文章
+```
+
+嵌套的层级不宜太深，一般不超过两级。
 
 ## 参数注解
 

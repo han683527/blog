@@ -4,10 +4,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.response.ArticleResponse;
+import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.Article;
 import org.example.blog.service.ArticleService;
+import org.example.blog.service.CommentService;
 import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final CommentService commentService;
 
     @PostMapping
     public Result<String> createArticle(@Valid @RequestBody ArticleRequest articleRequest){
@@ -66,5 +69,13 @@ public class ArticleController {
                                     @Valid @RequestBody ArticleRequest articleRequest){
         articleService.updateArticleById(id,articleRequest.getTitle(),articleRequest.getContent());
         return Result.success("修改成功");
+    }
+
+    // 查询文章下的评论
+    @GetMapping("/{id}/comments")
+    public Result<PageResponse<CommentResponse>> getCommentByArticleId(@PathVariable Long id,
+                                                                       @RequestParam(defaultValue = "1") int page,
+                                                                       @RequestParam(defaultValue = "10") int size) {
+        return Result.success(commentService.pageCommentByArticleId(id,page,size));
     }
 }
