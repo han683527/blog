@@ -1,6 +1,8 @@
 package org.example.blog.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.lang.TypeReference;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -16,15 +18,21 @@ import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.ArticleService;
 import org.example.blog.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
 
     @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Autowired
     private CommentMapper commentMapper;
+
 
     @Override
     public void createArticle(Long authorId, String title, String content) {
@@ -36,17 +44,42 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         log.info("用户 {} 创建文章 {}",UserContext.get(), title);
     }
 
-    @Override
-    public Article getArticleById(Long id) {
+    public Article getArticleById(Long id){
+        // 1.先查缓存
+        String key = "article:" + id; // 定义一个存取的钥匙
+        String cached = redisTemplate.opsForValue().get(key);
+        if(cached != null){
+            log.info("缓存命中: {}",key);
+            if("NULL".equals(cached)){
+                throw new NotFoundException("文章不存在");
+            }
+            return JSONUtil.toBean(cached,Article.class);
+        }
+
+        // 2.缓存没有,查数据库
         Article article = this.getById(id);
-        if (article == null) {
+        if(article == null){
+            redisTemplate.opsForValue().set(key,"NULL",1,TimeUnit.MINUTES);
+            log.info("写入空值缓存(防穿透): {}",key);
             throw new NotFoundException("文章不存在");
         }
+
+        // 3.写入缓存,并设置 TTL(定期过期,防止缓存没有被正常删除而导致脏数据)
+        redisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(article),10, TimeUnit.MINUTES);
+        log.info("写入缓存: {}",key);
         return article;
     }
 
     @Override
-    public PageResponse<ArticleResponse> searchArticle(String keyword, int page, int size) {
+    public PageResponse<ArticleResponse> searchArticle(String keyword,int page, int size){
+        String key = "search:" + keyword + ":" + page + ":" + size;
+        String cached = redisTemplate.opsForValue().get(key);
+        if(cached != null){
+            log.info("缓存命中: {}",key);
+            // TypeReference 能保留类型信息让 JSON 反序列化正确
+            return JSONUtil.toBean(cached,new TypeReference<PageResponse<ArticleResponse>>(){},false);
+        }
+
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(Article::getTitle,keyword);
         Page<Article> p = this.page(new Page<>(page,size),wrapper);
@@ -54,14 +87,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
         response.setList(list);
+
+        redisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(response),10, TimeUnit.MINUTES);
+        log.info("写入缓存: {}",key);
         return response;
     }
-
-//    @Override
-//    public void deleteAllArticle() {
-//        commentMapper.delete(null);
-//        this.remove(null);
-//    }
 
     @Override
     public void deleteArticleById(Long id) {
@@ -75,6 +105,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         wrapper.eq(Comment::getArticleId,id);
         commentMapper.delete(wrapper);
         this.removeById(id);
+
+        // 每次删除要删除缓存
+        redisTemplate.delete("article:" + id);
+        log.info("删除缓存: article: {}",article);
     }
 
     @Override
@@ -86,7 +120,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         }
         article.setTitle(title);
         article.setContent(content);
+        log.info("文章 {} 更新",title);
         this.updateById(article);
+
+        // 每次更新要删除缓存
+        redisTemplate.delete("article:" + id);
+        log.info("删除缓存: article: {}",id);
     }
 
     @Override

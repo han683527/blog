@@ -15,9 +15,6 @@ public interface ArticleService extends IService<Article> {
     // 根据 id 查找文章
     Article getArticleById(Long id);
 
-//    // 删除所有文章(一般用不到)
-//    void deleteAllArticle();
-
     // 根据 id 删除文章
     void deleteArticleById(Long id);
 
