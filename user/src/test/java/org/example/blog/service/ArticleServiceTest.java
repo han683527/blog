@@ -1,9 +1,14 @@
 package org.example.blog.service;
 
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.blog.dto.response.ArticleResponse;
+import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
+import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
+import org.example.blog.util.UserContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,28 +17,148 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@Transactional // 测试完自动回滚,不影响数据库
+@Transactional
 public class ArticleServiceTest {
 
     @Autowired
     private ArticleService articleService;
 
+    @BeforeEach
+    void setUp() {
+        UserContext.set(1L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        UserContext.remove();
+    }
+
+    // ---------- 创建 ----------
+
     @Test
-    // NotFoundException
-    void GetArticleById1(){
-        assertThrows(NotFoundException.class,
-                () -> articleService.getArticleById(99L));
+    void testCreateArticle_Success() {
+        articleService.createArticle(1L, "测试标题", "测试内容");
+
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Article::getTitle, "测试标题");
+        Article article = articleService.getOne(wrapper);
+        assertNotNull(article);
+        assertEquals("测试内容", article.getContent());
+        assertEquals(1L, article.getAuthorId());
+    }
+
+    // ---------- 根据 ID 查询 ----------
+
+    @Test
+    void testGetArticleById_Success() {
+        articleService.createArticle(1L, "测试标题", "测试内容");
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Article::getTitle, "测试标题");
+        Long id = articleService.getOne(wrapper).getId();
+
+        Article article = articleService.getArticleById(id);
+        assertNotNull(article);
+        assertEquals("测试标题", article.getTitle());
     }
 
     @Test
-    void GetArticleById2(){
-        articleService.createArticle(1L,"测试标题","测试内容");
+    void testGetArticleById_NotFound() {
+        assertThrows(NotFoundException.class,
+                () -> articleService.getArticleById(999L));
+    }
 
+    // ---------- 删除 ----------
+
+    @Test
+    void testDeleteArticleById_Success() {
+        articleService.createArticle(1L, "测试标题", "测试内容");
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Article::getTitle,"测试标题");
-        Article id = articleService.getOne(wrapper);
-        Article article = articleService.getArticleById(id.getId());
-        assertNotNull(article);
-        assertEquals("测试标题",article.getTitle());
+        wrapper.eq(Article::getTitle, "测试标题");
+        Long id = articleService.getOne(wrapper).getId();
+
+        articleService.deleteArticleById(id);
+        assertThrows(NotFoundException.class,
+                () -> articleService.getArticleById(id));
+    }
+
+    @Test
+    void testDeleteArticleById_NotFound() {
+        assertThrows(NotFoundException.class,
+                () -> articleService.deleteArticleById(999L));
+    }
+
+    @Test
+    void testDeleteArticleById_Forbidden() {
+        articleService.createArticle(1L, "测试标题", "测试内容");
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Article::getTitle, "测试标题");
+        Long id = articleService.getOne(wrapper).getId();
+
+        UserContext.set(2L);
+        assertThrows(ForbiddenException.class,
+                () -> articleService.deleteArticleById(id));
+    }
+
+    // ---------- 更新 ----------
+
+    @Test
+    void testUpdateArticleById_Success() {
+        articleService.createArticle(1L, "测试标题", "测试内容");
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Article::getTitle, "测试标题");
+        Long id = articleService.getOne(wrapper).getId();
+
+        articleService.updateArticleById(id, "新标题", "新内容");
+        Article article = articleService.getArticleById(id);
+        assertEquals("新标题", article.getTitle());
+        assertEquals("新内容", article.getContent());
+    }
+
+    @Test
+    void testUpdateArticleById_NotFound() {
+        assertThrows(NotFoundException.class,
+                () -> articleService.updateArticleById(999L, "标题", "内容"));
+    }
+
+    @Test
+    void testUpdateArticleById_Forbidden() {
+        articleService.createArticle(1L, "测试标题", "测试内容");
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Article::getTitle, "测试标题");
+        Long id = articleService.getOne(wrapper).getId();
+
+        UserContext.set(2L);
+        assertThrows(ForbiddenException.class,
+                () -> articleService.updateArticleById(id, "新标题", "新内容"));
+    }
+
+    // ---------- 分页 ----------
+
+    @Test
+    void testPageArticle() {
+        articleService.createArticle(1L, "文章1", "内容1");
+        articleService.createArticle(1L, "文章2", "内容2");
+
+        PageResponse<ArticleResponse> result = articleService.pageArticle(1, 10);
+        assertEquals(2, result.getTotal());
+        assertFalse(result.getList().isEmpty());
+    }
+
+    // ---------- 搜索 ----------
+
+    @Test
+    void testSearchArticle() {
+        articleService.createArticle(1L, "Spring Boot入门", "内容");
+        articleService.createArticle(1L, "Redis实战", "内容");
+
+        PageResponse<ArticleResponse> result = articleService.searchArticle("Spring", 1, 10);
+        assertEquals(1, result.getTotal());
+    }
+
+    @Test
+    void testSearchArticle_EmptyResult() {
+        PageResponse<ArticleResponse> result = articleService.searchArticle("不存在的关键字", 1, 10);
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getList().isEmpty());
     }
 }
