@@ -44,7 +44,7 @@ URL 只表达"什么东西"，方法表达"干什么"。
 
 **本项目 API 设计：**
 ```
-GET    /article              → 文章列表
+GET    /article              → 文章列表（可选 ?categoryId=1 按分类筛选）
 GET    /article/{id}         → 文章详情
 GET    /article/search/{kw}  → 搜索文章
 POST   /article              → 新增文章
@@ -55,6 +55,10 @@ GET    /comment              → 评论列表
 POST   /comment              → 新增评论
 PUT    /comment/{id}         → 修改评论
 DELETE /comment/{id}         → 删除评论
+GET    /category             → 分类列表
+POST   /category             → 新增分类
+PUT    /category/{id}        → 修改分类
+DELETE /category/{id}        → 删除分类
 ```
 
 `/article/{id}/comments` 这种路径表示评论是文章的子资源，URL 读起来就是"文章3的评论"。新增评论不需要在 URL 里写文章 ID，因为文章 ID 在请求体里。
@@ -100,6 +104,18 @@ public Result<...> search(@PathVariable String keyword,
 ```
 
 `@PathVariable` 取路径段，`@RequestParam` 取 `?` 后面的参数。
+
+### 可选参数
+
+用 `@RequestParam(required = false)` 标记可选参数，请求可以不传：
+
+```java
+@GetMapping
+public Result<...> getAll(@RequestParam(defaultValue = "1") int page,
+                          @RequestParam(required = false) Long categoryId) {
+    // categoryId 有值则按分类筛选，否则查全部
+}
+```
 
 ## 依赖注入
 

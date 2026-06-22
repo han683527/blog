@@ -29,6 +29,20 @@ wrapper.like(Article::getTitle, keyword);  // WHERE title LIKE %keyword%
 | `and(w -> w.eq(...))` | `AND (条件)` |
 | `or(w -> w.eq(...))` | `OR (条件)` |
 
+### 条件查询（可选参数）
+
+当参数可能为 null 时，加 `if` 判断来决定是否拼入 WHERE 条件：
+
+```java
+LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+if(categoryId != null){
+    wrapper.eq(Article::getCategoryId, categoryId);
+}
+Page<Article> p = this.page(new Page<>(page, size), wrapper);
+```
+
+`categoryId` 为 null 时不加条件查全部，有值时才筛选。避免用字符串拼接 SQL。`
+
 ### LambdaQueryWrapper vs QueryWrapper
 
 | | LambdaQueryWrapper | QueryWrapper |

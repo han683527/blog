@@ -13,11 +13,9 @@ public interface CommentService extends IService<Comment> {
 
     Comment getCommentById(Long id);
 
-    List<Comment> getAllComment();
-
     void deleteCommentById(Long id);
 
-    void updateCommentById(Long id,String content);
+    void updateCommentById(String content,Long id);
 
     PageResponse<CommentResponse> pageComment(int page, int size);
 

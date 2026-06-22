@@ -27,15 +27,23 @@ public class CommentServiceTest {
     @Autowired
     private ArticleService articleService;
 
+    @Autowired
+    private CategoryService categoryService;
+
     private Long articleId;
 
     @BeforeEach
     void setUp() {
         UserContext.set(1L);
-        articleService.createArticle(1L, "测试文章", "测试内容");
-        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Article::getTitle, "测试文章");
-        articleId = articleService.getOne(wrapper).getId();
+        categoryService.createCategory("测试分类");
+        LambdaQueryWrapper<org.example.blog.entity.Category> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(org.example.blog.entity.Category::getCategoryName, "测试分类");
+        Long categoryId = categoryService.getOne(wrapper).getId();
+
+        articleService.createArticle(1L, "测试文章", "测试内容", categoryId);
+        LambdaQueryWrapper<Article> aWrapper = new LambdaQueryWrapper<>();
+        aWrapper.eq(Article::getTitle, "测试文章");
+        articleId = articleService.getOne(aWrapper).getId();
     }
 
     @AfterEach
@@ -122,7 +130,7 @@ public class CommentServiceTest {
         wrapper.eq(Comment::getContent, "测试评论");
         Long id = commentService.getOne(wrapper).getId();
 
-        commentService.updateCommentById(id, "更新后的评论");
+        commentService.updateCommentById( "更新后的评论",id);
         Comment comment = commentService.getCommentById(id);
         assertEquals("更新后的评论", comment.getContent());
     }
@@ -130,7 +138,7 @@ public class CommentServiceTest {
     @Test
     void testUpdateCommentById_NotFound() {
         assertThrows(NotFoundException.class,
-                () -> commentService.updateCommentById(999L, "新内容"));
+                () -> commentService.updateCommentById( "新内容",999L));
     }
 
     @Test
@@ -142,7 +150,7 @@ public class CommentServiceTest {
 
         UserContext.set(2L);
         assertThrows(ForbiddenException.class,
-                () -> commentService.updateCommentById(id, "新内容"));
+                () -> commentService.updateCommentById("新内容",id));
     }
 
     // ---------- 按文章分页查询 ----------

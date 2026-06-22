@@ -3,7 +3,6 @@ package org.example.blog.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
-import org.example.blog.dto.request.UpdateCommentRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
@@ -25,10 +24,11 @@ public class CommentController {
 //        this.commentService = commentService;
 //    }
 
-    @PostMapping
-    public Result<String> createComment(@Valid @RequestBody CommentRequest commentRequest){
+    @PostMapping("article/{id}/comment")
+    public Result<String> createComment(@PathVariable Long id,
+                                        @Valid @RequestBody CommentRequest commentRequest){
         Long userId = UserContext.get();
-        commentService.createComment(userId,commentRequest.getArticleId(),commentRequest.getContent());
+        commentService.createComment(userId,id,commentRequest.getContent());
 //        return "评论成功";
         return Result.success("评论成功");
     }
@@ -51,9 +51,9 @@ public class CommentController {
     }
 
     @PutMapping("/{id}")
-    public Result<String> updateCommentById(@Valid @RequestBody UpdateCommentRequest commentRequest ,
+    public Result<String> updateCommentById(@Valid @RequestBody CommentRequest commentRequest ,
                                     @PathVariable Long id){
-        commentService.updateCommentById(id,commentRequest.getContent());
+        commentService.updateCommentById(commentRequest.getContent(),id);
         return Result.success("修改成功");
     }
 }

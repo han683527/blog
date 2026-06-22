@@ -25,7 +25,7 @@ public class ArticleController {
     @PostMapping
     public Result<String> createArticle(@Valid @RequestBody ArticleRequest articleRequest){
         Long userId = UserContext.get();
-        articleService.createArticle(userId,articleRequest.getTitle(),articleRequest.getContent());
+        articleService.createArticle(userId,articleRequest.getTitle(),articleRequest.getContent(),articleRequest.getCategoryId());
         return Result.success("发布成功");
     }
 
@@ -36,8 +36,9 @@ public class ArticleController {
 //    }
     @GetMapping
     public Result<PageResponse<ArticleResponse>> getAllArticle(@RequestParam(defaultValue = "1") int page,
-                                                               @RequestParam(defaultValue = "10") int size){
-        return Result.success(articleService.pageArticle(page,size));
+                                                               @RequestParam(defaultValue = "10") int size,
+                                                               @RequestParam(required = false) Long categoryId){
+        return Result.success(articleService.pageArticle(page,size,categoryId));
     }
 
     @GetMapping("/{id}")
@@ -49,7 +50,7 @@ public class ArticleController {
     public Result<PageResponse<ArticleResponse>> searchArticle(@PathVariable String keyword,
                                                 @RequestParam(defaultValue = "1") int page,
                                                 @RequestParam(defaultValue = "10") int size){
-        return Result.success(articleService.searchArticle(keyword,page,size));
+        return Result.success(articleService.searchArticleByTitleKeyword(keyword,page,size));
     }
 
 //    @DeleteMapping
@@ -65,9 +66,9 @@ public class ArticleController {
     }
 
     @PutMapping("/{id}")
-    public Result<String> updateArticleById(@PathVariable Long id ,
+    public Result<String> updateArticleById(@PathVariable Long id,
                                     @Valid @RequestBody ArticleRequest articleRequest){
-        articleService.updateArticleById(id,articleRequest.getTitle(),articleRequest.getContent());
+        articleService.updateArticleById(id,articleRequest.getTitle(),articleRequest.getContent(),articleRequest.getCategoryId());
         return Result.success("修改成功");
     }
 

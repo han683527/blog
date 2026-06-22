@@ -44,16 +44,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
         this.save(comment);
     }
 
-    //按照 id 查找评论
-//    @Override
-//    public Comment getCommentById(Long id){
-//        Comment comment = this.getById(id);
-//        if(comment == null){
-//            throw new NotFoundException("评论不存在");
-//        }
-//        return comment;
-//    }
-
     public Comment getCommentById(Long id){
         String key = "comment:" + id;
         String cached = redisTemplate.opsForValue().get(key);
@@ -77,12 +67,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
         return comment;
     }
 
-    //按照文章查所有评论
-    @Override
-    public List<Comment> getAllComment() {
-        return this.list();
-    }
-
     @Override
     public void deleteCommentById(Long id) {
         Comment comment = this.getById(id);
@@ -99,7 +83,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper,Comment> imple
     }
 
     @Override
-    public void updateCommentById(Long id, String content) {
+    public void updateCommentById(String content,Long id) {
         Comment comment = this.getById(id);
         if(comment == null){
             throw new NotFoundException("评论不存在");

@@ -11,4 +11,6 @@ public class ArticleRequest {
 
     @NotBlank(message = "内容不能为空")
     private String content;
+
+    private Long categoryId;
 }

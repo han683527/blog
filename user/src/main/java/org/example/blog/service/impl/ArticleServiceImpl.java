@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
+import org.example.blog.entity.Category;
 import org.example.blog.entity.Comment;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
@@ -35,11 +36,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
 
     @Override
-    public void createArticle(Long authorId, String title, String content) {
+    public void createArticle(Long authorId, String title, String content,Long categoryId) {
         Article article = new Article();
         article.setAuthorId(authorId);
         article.setTitle(title);
         article.setContent(content);
+        article.setCategoryId(categoryId);
         this.save(article);
         log.info("用户 {} 创建文章 {}",UserContext.get(), title);
     }
@@ -71,8 +73,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PageResponse<ArticleResponse> searchArticle(String keyword,int page, int size){
-        String key = "search:" + keyword + ":" + page + ":" + size;
+    public PageResponse<ArticleResponse> searchArticleByTitleKeyword(String keyword,int page, int size){
+        String key = "search:" + keyword;
         String cached = redisTemplate.opsForValue().get(key);
         if(cached != null){
             log.info("缓存命中: {}",key);
@@ -88,7 +90,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         response.setTotal(p.getTotal());
         response.setList(list);
 
-        redisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(response),10, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(response),1, TimeUnit.MINUTES);
         log.info("写入缓存: {}",key);
         return response;
     }
@@ -112,7 +114,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public void updateArticleById(Long id, String title, String content) {
+    public void updateArticleById(Long id, String title, String content,Long  categoryId) {
         Article article =  this.getOptById(id)
                 .orElseThrow(() -> new NotFoundException("文章不存在"));
         if(article.getAuthorId() != UserContext.get()){
@@ -120,7 +122,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         }
         article.setTitle(title);
         article.setContent(content);
-        log.info("文章 {} 更新",title);
+        article.setCategoryId(categoryId);
         this.updateById(article);
 
         // 每次更新要删除缓存
@@ -129,8 +131,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PageResponse<ArticleResponse> pageArticle(int page, int size) {
-        Page<Article> p = this.page(new Page<>(page,size));
+    public PageResponse<ArticleResponse> pageArticle(int page, int size,Long categoryId) {
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        if(categoryId != null){
+            wrapper.eq(Article::getCategoryId,categoryId);
+        }
+        Page<Article> p = this.page(new Page<>(page,size),wrapper);
         // Hutool 的根据方法:内部调用反射遍历 Article 的 getter,找到 ArticleResponse 里同名的字段,复制过去
         List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(),ArticleResponse.class);
         PageResponse<ArticleResponse> response = new PageResponse<>();
