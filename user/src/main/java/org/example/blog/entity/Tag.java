@@ -4,15 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
-@TableName("Category")
-public class Category {
+@TableName("Tag")
+public class Tag {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private String categoryName;
+    private String tagName;
 
     private LocalDateTime createTime;
 }

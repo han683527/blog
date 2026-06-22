@@ -9,12 +9,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
-import org.example.blog.entity.Article;
-import org.example.blog.entity.Category;
-import org.example.blog.entity.Comment;
+import org.example.blog.entity.*;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.ArticleMapper;
+import org.example.blog.mapper.ArticleTagMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.ArticleService;
 import org.example.blog.util.UserContext;
@@ -34,15 +33,30 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Autowired
     private CommentMapper commentMapper;
 
+    @Autowired
+    private ArticleTagMapper articleTagMapper;
+
 
     @Override
-    public void createArticle(Long authorId, String title, String content,Long categoryId) {
+    public void createArticle(Long authorId, String title, String content,Long categoryId,List<Long> tagIds) {
         Article article = new Article();
         article.setAuthorId(authorId);
         article.setTitle(title);
         article.setContent(content);
         article.setCategoryId(categoryId);
         this.save(article);
+
+        // 先有数据才能插标签,否则会读到 null
+        if(tagIds != null && !tagIds.isEmpty()){
+            for(Long tagId : tagIds){
+                ArticleTag articleTag = new ArticleTag();
+                articleTag.setArticleId(article.getId());
+                articleTag.setTagId(tagId);
+                articleTagMapper.insert(articleTag);
+            }
+        }
+
+
         log.info("用户 {} 创建文章 {}",UserContext.get(), title);
     }
 
@@ -103,9 +117,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new ForbiddenException("不能删除别人的文章");
         }
         //删文章后,相关的评论直接全部删除
-        LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<Comment>();
-        wrapper.eq(Comment::getArticleId,id);
-        commentMapper.delete(wrapper);
+        LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<Comment>();
+        commentWrapper.eq(Comment::getArticleId,id);
+        commentMapper.delete(commentWrapper);
+        LambdaQueryWrapper<ArticleTag>  tagWrapper = new LambdaQueryWrapper<>();
+        tagWrapper.eq(ArticleTag::getArticleId,id);
+        articleTagMapper.delete(tagWrapper);
         this.removeById(id);
 
         // 每次删除要删除缓存
@@ -114,7 +131,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public void updateArticleById(Long id, String title, String content,Long  categoryId) {
+    public void updateArticleById(Long id, String title, String content,Long  categoryId,List<Long> tagIds) {
         Article article =  this.getOptById(id)
                 .orElseThrow(() -> new NotFoundException("文章不存在"));
         if(article.getAuthorId() != UserContext.get()){
@@ -124,6 +141,18 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         article.setContent(content);
         article.setCategoryId(categoryId);
         this.updateById(article);
+        LambdaQueryWrapper<ArticleTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ArticleTag::getArticleId,id);
+        // 更新方式:先删除再插入
+        articleTagMapper.delete(wrapper);
+        if(tagIds != null && !tagIds.isEmpty()){
+            for(Long tagId : tagIds){
+                ArticleTag articleTag = new ArticleTag();
+                articleTag.setArticleId(article.getId());
+                articleTag.setTagId(tagId);
+                articleTagMapper.insert(articleTag);
+            }
+        }
 
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);

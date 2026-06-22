@@ -3,6 +3,8 @@ package org.example.blog.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ArticleRequest {
 
@@ -13,4 +15,6 @@ public class ArticleRequest {
     private String content;
 
     private Long categoryId;
+
+    private List<Long> tagIds;
 }

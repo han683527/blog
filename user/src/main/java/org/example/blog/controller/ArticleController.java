@@ -25,7 +25,11 @@ public class ArticleController {
     @PostMapping
     public Result<String> createArticle(@Valid @RequestBody ArticleRequest articleRequest){
         Long userId = UserContext.get();
-        articleService.createArticle(userId,articleRequest.getTitle(),articleRequest.getContent(),articleRequest.getCategoryId());
+        articleService.createArticle(userId,
+                articleRequest.getTitle(),
+                articleRequest.getContent(),
+                articleRequest.getCategoryId(),
+                articleRequest.getTagIds());
         return Result.success("发布成功");
     }
 
@@ -68,7 +72,11 @@ public class ArticleController {
     @PutMapping("/{id}")
     public Result<String> updateArticleById(@PathVariable Long id,
                                     @Valid @RequestBody ArticleRequest articleRequest){
-        articleService.updateArticleById(id,articleRequest.getTitle(),articleRequest.getContent(),articleRequest.getCategoryId());
+        articleService.updateArticleById(id,
+                articleRequest.getTitle(),
+                articleRequest.getContent(),
+                articleRequest.getCategoryId(),
+                articleRequest.getTagIds());
         return Result.success("修改成功");
     }
 

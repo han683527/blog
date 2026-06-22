@@ -10,7 +10,7 @@ import java.util.List;
 public interface ArticleService extends IService<Article> {
 
     // 创建文章
-    void createArticle(Long authorId,String title,String content,Long categoryId);
+    void createArticle(Long authorId,String title,String content,Long categoryId,List<Long> tagIds);
 
     // 根据 id 查找文章
     Article getArticleById(Long id);
@@ -19,7 +19,7 @@ public interface ArticleService extends IService<Article> {
     void deleteArticleById(Long id);
 
     // 修改文章
-    void updateArticleById(Long id,String title,String content,Long categoryId);
+    void updateArticleById(Long id,String title,String content,Long categoryId,List<Long> tagIds);
 
     // 根据(分类)查询文章
     PageResponse<ArticleResponse> pageArticle(int page, int size,Long categoryId);

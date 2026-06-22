@@ -40,7 +40,7 @@ public class CommentServiceTest {
         wrapper.eq(org.example.blog.entity.Category::getCategoryName, "测试分类");
         Long categoryId = categoryService.getOne(wrapper).getId();
 
-        articleService.createArticle(1L, "测试文章", "测试内容", categoryId);
+        articleService.createArticle(1L, "测试文章", "测试内容", categoryId, null);
         LambdaQueryWrapper<Article> aWrapper = new LambdaQueryWrapper<>();
         aWrapper.eq(Article::getTitle, "测试文章");
         articleId = articleService.getOne(aWrapper).getId();
