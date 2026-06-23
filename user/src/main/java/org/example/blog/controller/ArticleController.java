@@ -3,14 +3,12 @@ package org.example.blog.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.ArticleRequest;
+import org.example.blog.dto.request.ArticleSearchRequest;
 import org.example.blog.dto.response.ArticleResponse;
-import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.Article;
 import org.example.blog.service.ArticleService;
-import org.example.blog.service.CommentService;
-import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -20,71 +18,32 @@ import org.springframework.web.bind.annotation.*;
 public class ArticleController {
 
     private final ArticleService articleService;
-    private final CommentService commentService;
 
     @PostMapping
-    public Result<String> createArticle(@Valid @RequestBody ArticleRequest articleRequest){
-        Long userId = UserContext.get();
-        articleService.createArticle(userId,
-                articleRequest.getTitle(),
-                articleRequest.getContent(),
-                articleRequest.getCategoryId(),
-                articleRequest.getTagIds());
+    public Result<String> createArticle(@Valid @RequestBody ArticleRequest request) {
+        articleService.createArticle(request);
         return Result.success("发布成功");
     }
 
-//    // 相比与一次查询所有的数据,可以用分页查询显示数据,不用一次性全部返回参数(这个过程要时间渲染)
-//    @GetMapping
-//    public Result<Article> getAllArticle(){
-//        return Result.success(articleService.getAllArticle());
-//    }
-    @GetMapping
-    public Result<PageResponse<ArticleResponse>> getAllArticle(@RequestParam(defaultValue = "1") int page,
-                                                               @RequestParam(defaultValue = "10") int size,
-                                                               @RequestParam(required = false) Long categoryId){
-        return Result.success(articleService.pageArticle(page,size,categoryId));
+    @PostMapping("/list")
+    public Result<PageResponse<ArticleResponse>> pageArticle(@RequestBody ArticleSearchRequest request) {
+        return Result.success(articleService.pageArticle(request));
     }
 
     @GetMapping("/{id}")
-    public Result<Article> getArticleById(@PathVariable Long id){
+    public Result<Article> getArticleById(@PathVariable Long id) {
         return Result.success(articleService.getArticleById(id));
     }
 
-    @GetMapping("/search/{keyword}")
-    public Result<PageResponse<ArticleResponse>> searchArticle(@PathVariable String keyword,
-                                                @RequestParam(defaultValue = "1") int page,
-                                                @RequestParam(defaultValue = "10") int size){
-        return Result.success(articleService.searchArticleByTitleKeyword(keyword,page,size));
-    }
-
-//    @DeleteMapping
-//    public String deleteAllArticle(){
-//        articleService.deleteAllArticle();
-//        return "删除成功";
-//    }
-
     @DeleteMapping("/{id}")
-    public Result<String> deleteArticleById(@PathVariable Long id){
+    public Result<String> deleteArticleById(@PathVariable Long id) {
         articleService.deleteArticleById(id);
         return Result.success("删除成功");
     }
 
-    @PutMapping("/{id}")
-    public Result<String> updateArticleById(@PathVariable Long id,
-                                    @Valid @RequestBody ArticleRequest articleRequest){
-        articleService.updateArticleById(id,
-                articleRequest.getTitle(),
-                articleRequest.getContent(),
-                articleRequest.getCategoryId(),
-                articleRequest.getTagIds());
+    @PutMapping
+    public Result<String> updateArticleById(@Valid @RequestBody ArticleRequest request) {
+        articleService.updateArticleById(request);
         return Result.success("修改成功");
-    }
-
-    // 查询文章下的评论
-    @GetMapping("/{id}/comments")
-    public Result<PageResponse<CommentResponse>> getCommentByArticleId(@PathVariable Long id,
-                                                                       @RequestParam(defaultValue = "1") int page,
-                                                                       @RequestParam(defaultValue = "10") int size) {
-        return Result.success(commentService.pageCommentByArticleId(id,page,size));
     }
 }

@@ -11,9 +11,15 @@ import org.springframework.context.annotation.Configuration;
 public class MybatisPlusConfig {
 
     @Bean
-    public MybatisPlusInterceptor mybatisPlusInterceptor(){
+    public MybatisPlusInterceptor xxx() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-                interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));// 报错了
+
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor();
+        paginationInnerInterceptor.setDbType(DbType.MYSQL);
+        paginationInnerInterceptor.setMaxLimit(100L);
+
+        interceptor.addInnerInterceptor(paginationInnerInterceptor);
+
         return interceptor;
     }
 }

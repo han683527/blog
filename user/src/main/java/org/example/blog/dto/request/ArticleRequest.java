@@ -6,7 +6,8 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ArticleRequest {
+public class ArticleRequest{
+    private Long id;
 
     @NotBlank(message = "标题不能为空")
     private String title;

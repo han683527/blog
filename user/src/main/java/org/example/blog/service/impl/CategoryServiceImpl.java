@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.example.blog.dto.request.CategoryRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.CategoryResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
@@ -14,7 +16,6 @@ import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.CategoryMapper;
 import org.example.blog.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,9 +31,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
     private StringRedisTemplate redisTemplate;
 
     @Override
-    public void createCategory(String categoryName){
+    public void createCategory(CategoryRequest request){
         Category category = new Category();
-        category.setCategoryName(categoryName);
+        category.setCategoryName(request.getCategoryName());
         this.save(category);
     }
 
@@ -47,10 +48,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
     }
 
     @Override
-    public void updateCategory(String categoryName,Long categoryId){
+    public void updateCategory(CategoryRequest request){
+        Long categoryId = request.getCategoryId();
         Category category = this.getOptById(categoryId)
                 .orElseThrow(() -> new NotFoundException("文章种类不存在"));
-        category.setCategoryName(categoryName);
+        category.setCategoryName(request.getCategoryName());
         category.setId(categoryId);
         this.updateById(category);
 
@@ -59,8 +61,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper,Category> im
     }
 
     @Override
-    public PageResponse<CategoryResponse> getAllCategory(int page,int size){
-        Page<Category> p = this.page(new Page<>(page,size));
+    public PageResponse<CategoryResponse> pageCategory(PageRequest request){
+        Page<Category> p = this.page(new Page<>(request.getPage(),request.getSize()));
         List<CategoryResponse> list = BeanUtil.copyToList(p.getRecords(), CategoryResponse.class);
         PageResponse<CategoryResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());

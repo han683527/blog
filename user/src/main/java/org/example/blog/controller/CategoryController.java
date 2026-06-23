@@ -3,6 +3,7 @@ package org.example.blog.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CategoryRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.CategoryResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
@@ -19,7 +20,7 @@ public class CategoryController {
 
     @PostMapping
     public Result<String> createCategory(@Valid @RequestBody CategoryRequest categoryRequest){
-        categoryService.createCategory(categoryRequest.getCategoryName());
+        categoryService.createCategory(categoryRequest);
         return Result.success("种类创建成功");
     }
 
@@ -29,17 +30,15 @@ public class CategoryController {
         return Result.success("种类删除成功");
     }
 
-    @PutMapping("/{id}")
-    public Result<String> updateCategory(@PathVariable Long id,
-                                         @Valid @RequestBody CategoryRequest categoryRequest){
-        categoryService.updateCategory(categoryRequest.getCategoryName(),id);
+    @PutMapping
+    public Result<String> updateCategory(@Valid @RequestBody CategoryRequest request){
+        categoryService.updateCategory(request);
         return Result.success("种类修改成功");
     }
 
-    @GetMapping
-    public Result<PageResponse<CategoryResponse>> getAllCategory(@RequestParam(defaultValue = "1") int page,
-                                                         @RequestParam(defaultValue = "10") int size){
-        return Result.success(categoryService.getAllCategory(page,size));
+    @PostMapping("/list")
+    public Result<PageResponse<CategoryResponse>> pageCategory(@RequestBody PageRequest request){
+        return Result.success(categoryService.pageCategory(request));
     }
 
     @GetMapping("/{id}")

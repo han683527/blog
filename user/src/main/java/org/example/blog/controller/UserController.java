@@ -24,16 +24,15 @@ public class UserController {
     //@RequestBody 注解处理前端发来的 JSON 字符串-> Java 对象
     //@Valid 触发校验,进行对象是否为空等判断
     @PostMapping("/register")
-    public Result<String> register(@Valid @RequestBody RegisterRequest registerRequest){
-        userService.register(registerRequest.getEmail(),registerRequest.getPassword(),registerRequest.getNickname());
+    public Result<String> register(@Valid @RequestBody RegisterRequest request){
+        userService.register(request);
         return Result.success("注册成功");
     }
 
-    @PostMapping("login")
+    @PostMapping("/login")
     public Result<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest){
-        User user = userService.login(loginRequest.getEmail(),loginRequest.getPassword());
+        User user = userService.login(loginRequest);
         String token = JwtUtil.generateToken(user.getId(),user.getEmail());
-//        return new LoginResponse(token,user.getEmail(),user.getPassword(),user.getNickname());
         return Result.success(new LoginResponse(token,user.getEmail(),user.getNickname()));
     }
 }

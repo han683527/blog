@@ -1,6 +1,9 @@
 package org.example.blog.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.example.blog.dto.request.CommentRequest;
+import org.example.blog.dto.request.CommentSearchRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Comment;
@@ -9,15 +12,15 @@ import java.util.List;
 
 public interface CommentService extends IService<Comment> {
 
-    void createComment(Long userId,Long articleId,String content);
+    void createCommentByArticleId(CommentRequest request);
 
     Comment getCommentById(Long id);
 
     void deleteCommentById(Long id);
 
-    void updateCommentById(String content,Long id);
+    void updateCommentById(CommentRequest request);
 
-    PageResponse<CommentResponse> pageComment(int page, int size);
+    PageResponse<CommentResponse> pageComment(CommentSearchRequest request);
 
-    PageResponse<CommentResponse> pageCommentByArticleId(Long articleId, int page, int size);
+//    PageResponse<CommentResponse> pageCommentByArticleId(Long articleId, int page, int size);
 }

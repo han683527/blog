@@ -3,6 +3,8 @@ package org.example.blog.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
+import org.example.blog.dto.request.CommentSearchRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
@@ -20,23 +22,15 @@ public class CommentController {
 
     private final CommentService commentService;
 
-//    public CommentController(CommentService commentService){
-//        this.commentService = commentService;
-//    }
-
-    @PostMapping("article/{id}/comment")
-    public Result<String> createComment(@PathVariable Long id,
-                                        @Valid @RequestBody CommentRequest commentRequest){
-        Long userId = UserContext.get();
-        commentService.createComment(userId,id,commentRequest.getContent());
-//        return "评论成功";
+    @PostMapping
+    public Result<String> createCommentByArticleId(@Valid @RequestBody CommentRequest request){
+        commentService.createCommentByArticleId(request);
         return Result.success("评论成功");
     }
 
-    @GetMapping
-    public Result<PageResponse<CommentResponse>> getAllComment(@RequestParam(defaultValue = "1") int page,
-                                                               @RequestParam(defaultValue = "10") int size) {
-        return Result.success(commentService.pageComment(page,size));
+    @PostMapping("/list")
+    public Result<PageResponse<CommentResponse>> pageComment(@RequestBody CommentSearchRequest request) {
+        return Result.success(commentService.pageComment(request));
     }
 
     @GetMapping("/{id}")
@@ -50,10 +44,17 @@ public class CommentController {
         return Result.success("删除成功");
     }
 
-    @PutMapping("/{id}")
-    public Result<String> updateCommentById(@Valid @RequestBody CommentRequest commentRequest ,
-                                    @PathVariable Long id){
-        commentService.updateCommentById(commentRequest.getContent(),id);
+    @PutMapping
+    public Result<String> updateCommentById(@Valid @RequestBody CommentRequest request){
+        commentService.updateCommentById(request);
         return Result.success("修改成功");
     }
+
+//    // 查询文章下的评论
+//    @GetMapping("/{id}/comments")
+//    public Result<PageResponse<CommentResponse>> pageCommentByArticleId(@PathVariable Long id,
+//                                                                        @RequestParam(defaultValue = "1") int page,
+//                                                                        @RequestParam(defaultValue = "10") int size) {
+//        return Result.success(commentService.pageCommentByArticleId(id, page, size));
+//    }
 }
