@@ -3,6 +3,7 @@ package org.example.blog.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.LoginRequest;
+import org.example.blog.dto.request.RefreshTokenRequest;
 import org.example.blog.dto.request.RegisterRequest;
 import org.example.blog.dto.response.LoginResponse;
 import org.example.blog.dto.response.Result;
@@ -30,9 +31,18 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest){
-        User user = userService.login(loginRequest);
-        String token = JwtUtil.generateToken(user.getId(),user.getEmail());
-        return Result.success(new LoginResponse(token,user.getEmail(),user.getNickname()));
+    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request){
+        return Result.success(userService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public Result<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request){
+        return Result.success(userService.refresh(request));
+    }
+
+    @PostMapping("/logout")
+    public Result<String> logout(@RequestHeader("Authorization") String authHeader) {
+        userService.logout(authHeader);
+        return Result.success("登出成功");
     }
 }

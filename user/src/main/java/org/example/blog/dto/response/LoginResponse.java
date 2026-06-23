@@ -6,13 +6,9 @@ import lombok.Data;
 @Data
 @AllArgsConstructor //为类生成一个包含所有字段的构造方法
 public class LoginResponse {
+    private String accessToken;
 
-    private String token;
+    private String refreshToken;
 
     private String email;
-
-    //最好不暴露密码
-//    private String password;
-
-    private String nickname;
 }

@@ -2,14 +2,18 @@ package org.example.blog.interceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.example.blog.util.JwtUtil;
 import org.example.blog.util.UserContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 
-@Component//作用是什么?
+@Component
+@RequiredArgsConstructor
 public class TokenInterceptor implements HandlerInterceptor {
+
+    private final JwtUtil jwtUtil;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -25,7 +29,7 @@ public class TokenInterceptor implements HandlerInterceptor {
         token = token.substring(7); //去掉 "Bearer" 前缀拿到真正的 token
 
         try{
-            Long userId = JwtUtil.getUserId(token);
+            Long userId = jwtUtil.validateAndGetUserId(token);
             UserContext.set(userId); // 存入上下文
             request.setAttribute("userId",userId);
             return true;
