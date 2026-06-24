@@ -2,6 +2,7 @@ package org.example.blog.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.request.TagRequest;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
@@ -18,8 +19,8 @@ public class TagController {
     private final TagService tagService;
 
     @PostMapping
-    public Result<String> createTag(@Valid @RequestBody TagRequest tagRequest){
-        tagService.createTag(tagRequest.getTagName());
+    public Result<String> createTag(@Valid @RequestBody TagRequest request){
+        tagService.createTag(request);
         return Result.success("标签创建成功");
     }
 
@@ -29,17 +30,15 @@ public class TagController {
         return Result.success("标签删除成功");
     }
 
-    @PutMapping("/{id}")
-    public Result<String> updateTag(@PathVariable Long id,
-                                    @Valid @RequestBody TagRequest tagRequest){
-        tagService.updateTagById(id,tagRequest.getTagName());
+    @PutMapping
+    public Result<String> updateTag(@Valid @RequestBody TagRequest request){
+        tagService.updateTagById(request);
         return Result.success("标签修改成功");
     }
 
-    @GetMapping
-    public Result<PageResponse<TagResponse>> pageTag(@RequestParam(defaultValue = "1")Long page,
-                                                     @RequestParam(defaultValue = "10")Long size){
-        return Result.success(tagService.getAllTag(page,size));
+    @PostMapping("/list")
+    public Result<PageResponse<TagResponse>> pageTag(@RequestBody PageRequest request){
+        return Result.success(tagService.pageTag(request));
     }
 
     @GetMapping("/{id}")

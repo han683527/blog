@@ -31,7 +31,7 @@ public class ArticleController {
     }
 
     @GetMapping("/{id}")
-    public Result<Article> getArticleById(@PathVariable Long id) {
+    public Result<ArticleResponse> getArticleById(@PathVariable Long id) {
         return Result.success(articleService.getArticleById(id));
     }
 

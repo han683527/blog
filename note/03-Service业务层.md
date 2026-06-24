@@ -86,6 +86,95 @@ public void someMethod() {
 
 在 `ServiceImpl` 中使用时，注意调用方式：**同一个类内方法直接调用事务不生效**（AOP 代理机制）。
 
+## 多条件组合查询（pageArticle）
+
+```java
+public PageResponse<ArticleResponse> pageArticle(ArticleSearchRequest request) {
+    LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+
+    // 1. 模糊查找（keyword）
+    if (keyword != null && !keyword.isEmpty()) {
+        wrapper.like(Article::getTitle, keyword);
+    }
+
+    // 2. 按分类筛选（categoryId）
+    if (categoryId != null) {
+        wrapper.eq(Article::getCategoryId, categoryId);
+    }
+
+    // 3. 按标签筛选（tagIds）
+    if (tagIds != null && !tagIds.isEmpty()) {
+        // 两步查询：先查中间表拿到文章 ID，再查文章
+        List<ArticleTag> articleTags = articleTagMapper.selectList(
+                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getTagId, tagIds));
+        List<Long> articleIds = articleTags.stream()
+                .map(ArticleTag::getArticleId).distinct().collect(Collectors.toList());
+        wrapper.in(Article::getId, articleIds);
+    }
+
+    Page<Article> p = this.page(Page.of(page, size), wrapper);
+    ...
+}
+```
+
+**多个条件同时满足**（AND 关系）—— 后端只拼条件，SQL 端 WHERE 条件叠加。
+
+**标签的两步查询：** 因为文章和标签隔着一张中间表，不能直接在文章表上 WHERE。拆成：
+```
+SELECT article_id FROM Article_Tag WHERE tag_id IN (1,2)   → [1, 3, 5]
+SELECT * FROM Article WHERE id IN (1, 3, 5)                → 最终结果
+```
+
+## 批量查标签（为文章列表补全标签信息）
+
+分页查完文章后，每篇文章有哪些标签需要从中间表查出来。不能用 N+1 循环，而是**批量查**：
+
+```java
+List<Long> articleIdList = p.getRecords().stream()
+        .map(Article::getId).collect(Collectors.toList());
+
+if (!articleIdList.isEmpty()) {
+    // 一次性查出所有文章对应的中间表记录
+    List<ArticleTag> allTags = articleTagMapper.selectList(
+            new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIdList));
+
+    // 按文章 ID 分组：{ articleId: [tagId1, tagId2], ... }
+    Map<Long, List<Long>> tagMap = allTags.stream()
+            .collect(Collectors.groupingBy(
+                    ArticleTag::getArticleId,
+                    Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
+
+    // 设置到每个 response 中
+    for (ArticleResponse response : list) {
+        response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
+    }
+}
+```
+
+**为什么不用循环？** N 篇文章查 N 次 SQL（N+1 问题），批量查只用 2 次 SQL 就解决。
+
+## 涉及的 Stream API
+
+```java
+// 转换：List<Article> → List<Long>（id 列表）
+p.getRecords().stream().map(Article::getId).collect(Collectors.toList())
+
+// 去重
+stream().distinct().collect(Collectors.toList())
+
+// 分组：{ articleId: [tagId1, tagId2] }
+stream().collect(Collectors.groupingBy(
+        ArticleTag::getArticleId,                              // 按哪个字段分组
+        Collectors.mapping(ArticleTag::getTagId,               // 取每个元素的哪个字段
+                Collectors.toList())))                         // 收集成什么类型
+
+// 缺省值（避免空指针）
+tagMap.getOrDefault(response.getId(), List.of())
+//      ↑ 有这个 key 返回值    ↑ 没有返空列表
+```
+
+`groupingBy` 相当于 SQL 的 `GROUP BY`。组合 `Collectors.mapping` 可以在分组的同时转换字段类型。
+
 ## 异常处理
 
 Service 层抛出 `RuntimeException`，由 Controller 层的 `@RestControllerAdvice` 全局捕获，统一返回 `Result.error()`。Service 不需要 try-catch，只管正常逻辑。

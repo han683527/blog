@@ -2,13 +2,18 @@ package org.example.blog.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.example.blog.dto.request.PageRequest;
+import org.example.blog.dto.request.TagRequest;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.TagResponse;
+import org.example.blog.entity.ArticleTag;
 import org.example.blog.entity.Tag;
 import org.example.blog.exception.NotFoundException;
+import org.example.blog.mapper.ArticleTagMapper;
 import org.example.blog.mapper.TagMapper;
 import org.example.blog.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +30,16 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private ArticleTagMapper articleTagMapper;
+
     @Override
-    public void createTag(String tagName){
-        Tag tag = new Tag();
-        tag.setTagName(tagName);
-        this.save(tag);
+    public void createTag(TagRequest request){
+        if(request.getId()==null){
+            Tag tag = new Tag();
+            tag.setTagName(request.getTagName());
+            this.save(tag);
+        }
     }
 
     @Override
@@ -38,24 +48,31 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
                 .orElseThrow(() -> new NotFoundException("标签不存在"));
         this.removeById(id);
 
+        // 清理关联表的数据
+        LambdaQueryWrapper<ArticleTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ArticleTag::getTagId,id);
+        articleTagMapper.delete(wrapper);
+
         redisTemplate.delete("tag:" + id);
         log.info("删除缓存: tag: {}",tag);
     }
 
     @Override
-    public void updateTagById(Long id,String tagName){
+    public void updateTagById(TagRequest request){
+        Long id = request.getId();
         Tag tag = this.getOptById(id)
                 .orElseThrow(() -> new NotFoundException("标签不存在"));
-        tag.setTagName(tagName);
+        tag.setTagName(request.getTagName());
         this.updateById(tag);
 
         redisTemplate.delete("tag:" + id);
         log.info("删除缓存: tag: {}",tag);
     }
 
+    // todo 处理标签多的情况
     @Override
-    public PageResponse<TagResponse> getAllTag(Long page, Long size){
-        Page<Tag> p = this.page(new Page<>(page,size));
+    public PageResponse<TagResponse> pageTag(PageRequest request){
+        Page<Tag> p = this.page(new Page<>(request.getPage(),request.getSize()));
         List<TagResponse> list = BeanUtil.copyToList(p.getRecords(), TagResponse.class);
         PageResponse<TagResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
@@ -86,5 +103,4 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
         log.info("写入缓存: {}",key);
         return tag;
     }
-
 }

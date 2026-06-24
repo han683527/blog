@@ -18,7 +18,7 @@ public interface ArticleService extends IService<Article> {
     PageResponse<ArticleResponse> pageArticle(ArticleSearchRequest request);
 
     // 根据 id 查找文章
-    Article getArticleById(Long id);
+    ArticleResponse getArticleById(Long id);
 
     // 根据 id 删除文章
     void deleteArticleById(Long id);

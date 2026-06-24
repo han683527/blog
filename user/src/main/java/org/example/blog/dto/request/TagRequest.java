@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 public class TagRequest {
+    private Long id;
 
     @NotBlank(message = "标签名不能为空")
     private String tagName;

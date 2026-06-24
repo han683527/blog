@@ -3,6 +3,7 @@ package org.example.blog.dto.response;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ArticleResponse {
@@ -14,6 +15,10 @@ public class ArticleResponse {
     private String content;
 
     private Long authorId;
+
+    private Long categoryId;
+
+    private List<Long> tags;
 
     private LocalDateTime createTime;
 }
