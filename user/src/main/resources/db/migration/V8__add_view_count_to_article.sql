@@ -1,0 +1,1 @@
+alter table Article add column view_count bigint not null default 0;

@@ -21,4 +21,6 @@ public class ArticleResponse {
     private List<Long> tags;
 
     private LocalDateTime createTime;
+
+    private Long viewCount;
 }

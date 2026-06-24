@@ -24,6 +24,8 @@ public class Article {
 
     private Long categoryId;
 
+    private Long viewCount;
+
     // getter 和 setter(使用 lombok 可以快速生成)
 //    public long geitId(){ return id; }
 //    public void setId(long id){ this.id=id; }

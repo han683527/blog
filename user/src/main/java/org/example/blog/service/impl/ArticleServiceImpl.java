@@ -106,6 +106,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             wrapper.in(Article::getId, articleIds);
         }
 
+        wrapper.orderByDesc(Article::getViewCount);
+
         // 如果上述条件均不触发就只执行分页查找
         int page = request.getPage();
         int size = request.getSize();
@@ -141,6 +143,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             }
             // 缓存命中后应将缓存 JSON 反序列化为 Article
             Article article = BeanUtil.toBean(cached, Article.class);
+            // 在查标签之前插入
+            article.setViewCount(article.getViewCount() + 1);
+            this.updateById(article);
+            redisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(article),10,TimeUnit.MINUTES);
             // 查标签
             List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId, article.getId()));
             List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
@@ -157,6 +163,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new NotFoundException("文章不存在");
         }
 
+        article.setViewCount(article.getViewCount() + 1);
+        this.updateById(article);
         // 3.写入缓存,并设置 TTL(定期过期,防止缓存没有被正常删除而导致脏数据)
         redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(article), 10, TimeUnit.MINUTES);
         log.info("写入缓存: {}", key);
