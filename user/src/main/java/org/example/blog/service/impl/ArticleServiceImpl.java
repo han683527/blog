@@ -125,31 +125,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<Long> articleIdList = p.getRecords().stream()
                 .map(Article::getId).
                 collect(Collectors.toList());
-        if (!articleIdList.isEmpty()) {
-
-            //标签
-            List<ArticleTag> allTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIdList));
-            Map<Long, List<Long>> tagMap = allTags.stream().collect(Collectors.groupingBy(ArticleTag::getArticleId, Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
-
-            // 点赞数
-            Map<Long, Long> likeCountMap = articleLikeMapper.selectList(new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId, articleIdList))
-                    .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
-
-            // 收藏数
-            Map<Long, Long> collectCountMap = articleCollectMapper.selectList(new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId, articleIdList))
-                    .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
-
-            // 评论数
-            Map<Long, Long> commentCountMap = commentMapper.selectList(new LambdaQueryWrapper<Comment>().in(Comment::getArticleId, articleIdList))
-                    .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
-
-            for (ArticleResponse response : list) {
-                response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
-                response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
-                response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
-                response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
-            }
-        }
+        enrichArticleResponses(list, articleIdList);
 
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
@@ -189,7 +165,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
             response.setTags(tagIds);
             response.setLikeCount(articleLikeCount);
+            response.setIsLike(articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getUserId,UserContext.get()).eq(ArticleLike::getArticleId, id)) > 0);
             response.setCollectCount(articleCollectCount);
+            response.setIsCollect(articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getUserId,UserContext.get()).eq(ArticleCollect::getArticleId,id)) > 0);
             response.setCommentCount(commentCount);
             return response;
         }
@@ -224,7 +202,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
         response.setTags(tagIds);
         response.setLikeCount(articleLikeCount);
+        response.setIsLike(articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getUserId,UserContext.get()).eq(ArticleLike::getArticleId, id)) > 0);
         response.setCollectCount(articleCollectCount);
+        response.setIsCollect(articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getUserId,UserContext.get()).eq(ArticleCollect::getArticleId,id)) > 0);
         response.setCommentCount(commentCount);
         return response;
     }
@@ -320,6 +300,39 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         }
     }
 
+    private void enrichArticleResponses(List<ArticleResponse> list, List<Long> articleIdList) {
+        if (articleIdList == null || articleIdList.isEmpty()) return;
+
+        // 标签
+        List<ArticleTag> allTags = articleTagMapper.selectList(
+                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIdList));
+        Map<Long, List<Long>> tagMap = allTags.stream()
+                .collect(Collectors.groupingBy(ArticleTag::getArticleId,
+                        Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
+
+        // 点赞数
+        Map<Long, Long> likeCountMap = articleLikeMapper.selectList(
+                        new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId, articleIdList))
+                .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
+
+        // 收藏数
+        Map<Long, Long> collectCountMap = articleCollectMapper.selectList(
+                        new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId, articleIdList))
+                .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
+
+        // 评论数
+        Map<Long, Long> commentCountMap = commentMapper.selectList(
+                        new LambdaQueryWrapper<Comment>().in(Comment::getArticleId, articleIdList))
+                .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
+
+        for (ArticleResponse response : list) {
+            response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
+            response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
+            response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
+            response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
+        }
+    }
+
     public PageResponse<ArticleResponse> pageMyCollectArticle(PageRequest request) {
         Long userId = UserContext.get();
         // 根据 userId 查询用户收藏的文章 ids
@@ -334,30 +347,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
         List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
 
-        // 标签、点赞、收藏
-        List<ArticleTag> allTags = articleTagMapper.selectList(
-                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIds));
-        Map<Long, List<Long>> tagMap = allTags.stream()
-                .collect(Collectors.groupingBy(ArticleTag::getArticleId, Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
-
-        Map<Long, Long> likeCountMap = articleLikeMapper.selectList(
-                        new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId, articleIds))
-                .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
-
-        Map<Long, Long> articleCollectMap = articleCollectMapper.selectList(
-                        new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId, articleIds))
-                .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
-
-        Map<Long, Long> commentCountMap = commentMapper.selectList(
-                        new LambdaQueryWrapper<Comment>().in(Comment::getArticleId, articleIds))
-                .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
-
-        for (ArticleResponse response : list) {
-            response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
-            response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
-            response.setCollectCount(articleCollectMap.getOrDefault(response.getId(), 0L));
-            response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
-        }
+        enrichArticleResponses(list, articleIds);
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
         response.setList(list);
@@ -378,29 +368,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
         List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
 
-        List<ArticleTag> allTags = articleTagMapper.selectList(
-                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIds));
-        Map<Long, List<Long>> tagMap = allTags.stream()
-                .collect(Collectors.groupingBy(ArticleTag::getArticleId, Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
-
-        Map<Long, Long> likeCountMap = articleLikeMapper.selectList(
-                        new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId, articleIds))
-                .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
-
-        Map<Long, Long> collectCountMap = articleCollectMapper.selectList(
-                        new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId, articleIds))
-                .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
-
-        Map<Long, Long> commentCountMap = commentMapper.selectList(
-                        new LambdaQueryWrapper<Comment>().in(Comment::getArticleId, articleIds))
-                .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
-
-        for (ArticleResponse response : list) {
-            response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
-            response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
-            response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
-            response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
-        }
+        enrichArticleResponses(list, articleIds);
 
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());

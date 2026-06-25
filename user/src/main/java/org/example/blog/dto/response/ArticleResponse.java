@@ -29,4 +29,8 @@ public class ArticleResponse {
     private Long collectCount;
 
     private Long commentCount;
+
+    private Boolean isLike;
+
+    private Boolean isCollect;
 }
