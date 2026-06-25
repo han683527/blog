@@ -27,4 +27,6 @@ public class ArticleResponse {
     private Long likeCount;
 
     private Long collectCount;
+
+    private Long commentCount;
 }
