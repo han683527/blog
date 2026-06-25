@@ -31,5 +31,7 @@ public interface ArticleService extends IService<Article> {
 
     void collectArticleById(Long id);
 
-    PageResponse<ArticleResponse> pageCollectArticle(PageRequest request);
+    PageResponse<ArticleResponse> pageMyCollectArticle(PageRequest request);
+
+    PageResponse<ArticleResponse> pageMyArticle(PageRequest request);
 }

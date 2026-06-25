@@ -60,8 +60,13 @@ public class ArticleController {
         return Result.success("操作成功");
     }
 
-    @PostMapping("list/collect")
-    public Result<PageResponse<ArticleResponse>> pageCollectArticle(@RequestBody PageRequest request) {
-        return Result.success(articleService.pageCollectArticle(request));
+    @PostMapping("list/myCollect")
+    public Result<PageResponse<ArticleResponse>> pageMyCollectArticle(@RequestBody PageRequest request) {
+        return Result.success(articleService.pageMyCollectArticle(request));
+    }
+
+    @PostMapping("/list/myArticle")
+    public Result<PageResponse<ArticleResponse>> pageMyArticle(@RequestBody PageRequest request) {
+        return Result.success(articleService.pageMyArticle(request));
     }
 }
