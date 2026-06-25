@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.*;
@@ -20,6 +21,7 @@ import org.example.blog.util.UserContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +42,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
     private final CategoryMapper categoryMapper;
 
+    private final ArticleLikeMapper articleLikeMapper;
+
+    private final ArticleCollectMapper articleCollectMapper;
+
     @Override
     public void createArticle(ArticleRequest request) {
         Long userId = UserContext.get();
@@ -52,7 +58,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
             // 判断分类是否存在
             Category category = categoryMapper.selectById(request.getCategoryId());
-            if(category == null){
+            if (category == null) {
                 throw new NotFoundException("分类不存在");
             }
             article.setCategoryId(request.getCategoryId());
@@ -65,7 +71,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 判断标签是否存在
         if (tagIds != null && !tagIds.isEmpty()) {
             List<Tag> tags = tagMapper.selectByIds(tagIds);
-            if(tags.size() != tagIds.size()){
+            if (tags.size() != tagIds.size()) {
                 throw new NotFoundException("部分标签不存在");
             }
             for (Long tagId : tagIds) {
@@ -98,7 +104,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             wrapper.eq(Article::getCategoryId, categoryId);
         }
 
-        // 标签
+        // 查找具有该标签的文章
         List<Long> tagIds = request.getTagIds();
         if (tagIds != null && !tagIds.isEmpty()) {
             List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getTagId, tagIds));
@@ -111,18 +117,32 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 如果上述条件均不触发就只执行分页查找
         int page = request.getPage();
         int size = request.getSize();
-        Page<Article> p = this.page(Page.of(page, size), wrapper);
+        Page<Article> p = this.page(new Page<>(page, size), wrapper);
         // Hutool 的根据方法:内部调用反射遍历 Article 的 getter,找到 ArticleResponse 里同名的字段,复制过去
         List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
-        // 查找标签
+
+        // 查找一篇文章具有的所有标签,点赞数,收藏数
         List<Long> articleIdList = p.getRecords().stream()
                 .map(Article::getId).
-                        collect(Collectors.toList());
+                collect(Collectors.toList());
         if (!articleIdList.isEmpty()) {
+
+            //标签
             List<ArticleTag> allTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIdList));
             Map<Long, List<Long>> tagMap = allTags.stream().collect(Collectors.groupingBy(ArticleTag::getArticleId, Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
+
+            // 点赞
+            Map<Long, Long> likeCountMap = articleLikeMapper.selectList(new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId, articleIdList))
+                    .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
+
+            // 收藏
+            Map<Long, Long> collectCountMap = articleCollectMapper.selectList(new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId, articleIdList))
+                    .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
+
             for (ArticleResponse response : list) {
                 response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
+                response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
+                response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
             }
         }
 
@@ -142,16 +162,26 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                 throw new NotFoundException("文章不存在");
             }
             // 缓存命中后应将缓存 JSON 反序列化为 Article
-            Article article = BeanUtil.toBean(cached, Article.class);
+            Article article = JSONUtil.toBean(cached, Article.class);
             // 在查标签之前插入
-            article.setViewCount(article.getViewCount() + 1);
+            article.setViewCount(article.getViewCount() == null ? 0 : article.getViewCount() + 1);
             this.updateById(article);
-            redisTemplate.opsForValue().set(key,JSONUtil.toJsonStr(article),10,TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(article), 10, TimeUnit.MINUTES);
+
             // 查标签
-            List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId, article.getId()));
+            List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId, id));
             List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
+
+            // 查点赞数
+            Long articleLikeCount = articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getArticleId, id));
+
+            // 查收藏数
+            Long articleCollectCount = articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getArticleId, id));
+
             ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
             response.setTags(tagIds);
+            response.setLikeCount(articleLikeCount);
+            response.setCollectCount(articleCollectCount);
             return response;
         }
 
@@ -163,7 +193,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new NotFoundException("文章不存在");
         }
 
-        article.setViewCount(article.getViewCount() + 1);
+        article.setViewCount(article.getViewCount() == null ? 0 : article.getViewCount() + 1);
         this.updateById(article);
         // 3.写入缓存,并设置 TTL(定期过期,防止缓存没有被正常删除而导致脏数据)
         redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(article), 10, TimeUnit.MINUTES);
@@ -173,8 +203,16 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId, article.getId()));
         List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
 
+        // 查点赞数
+        Long articleLikeCount = articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getArticleId, id));
+
+        // 查收藏数
+        Long articleCollectCount = articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getArticleId, id));
+
         ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
         response.setTags(tagIds);
+        response.setLikeCount(articleLikeCount);
+        response.setCollectCount(articleCollectCount);
         return response;
     }
 
@@ -209,7 +247,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         article.setTitle(request.getTitle());
         article.setContent(request.getContent());
         Category category = categoryMapper.selectById(request.getCategoryId());
-        if(category == null){
+        if (category == null) {
             throw new NotFoundException("分类不存在");
         }
         article.setCategoryId(request.getCategoryId());
@@ -222,7 +260,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<Long> tagIds = request.getTagIds();
         if (tagIds != null && !tagIds.isEmpty()) {
             List<Tag> tags = tagMapper.selectByIds(tagIds);
-            if(tags.size() != tagIds.size()){
+            if (tags.size() != tagIds.size()) {
                 throw new NotFoundException("部分标签不存在");
             }
             for (Long tagId : tagIds) {
@@ -236,5 +274,75 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
         log.info("删除缓存: article: {}", id);
+    }
+
+    @Override
+    public void likeArticleById(Long id) {
+        Long userId = UserContext.get();
+        LambdaQueryWrapper<ArticleLike> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ArticleLike::getUserId, userId).eq(ArticleLike::getArticleId, id);
+        if (articleLikeMapper.selectCount(wrapper) > 0) {
+            // 已点赞 -> 取消点赞
+            articleLikeMapper.delete(wrapper);
+        } else {
+            // 没点赞 -> 点赞
+            ArticleLike articleLike = new ArticleLike();
+            articleLike.setUserId(userId);
+            articleLike.setArticleId(id);
+            articleLikeMapper.insert(articleLike);
+        }
+    }
+
+    public void collectArticleById(Long id) {
+        Long userId = UserContext.get();
+        LambdaQueryWrapper<ArticleCollect> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ArticleCollect::getUserId, userId).eq(ArticleCollect::getArticleId, id);
+        if (articleCollectMapper.selectCount(wrapper) > 0) {
+            articleCollectMapper.delete(wrapper);
+        } else {
+            ArticleCollect articleCollect = new ArticleCollect();
+            articleCollect.setUserId(userId);
+            articleCollect.setArticleId(id);
+            articleCollectMapper.insert(articleCollect);
+        }
+    }
+
+    public PageResponse<ArticleResponse> pageCollectArticle(PageRequest request) {
+        Long userId = UserContext.get();
+        // 根据 userId 查询用户收藏的文章 ids
+        List<ArticleCollect> articleCollects = articleCollectMapper.selectList(
+                new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getUserId, userId)
+                        .orderByDesc(ArticleCollect::getCreateTime));
+        List<Long> articleIds = articleCollects.stream().map(ArticleCollect::getArticleId).collect(Collectors.toList());
+
+        // 根据文章 ids 查文章
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(Article::getId,articleIds);
+        Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
+        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(),ArticleResponse.class);
+
+        // 标签、点赞、收藏
+        List<ArticleTag> allTags = articleTagMapper.selectList(
+                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIds));
+        Map<Long, List<Long>> tagMap = allTags.stream()
+                .collect(Collectors.groupingBy(ArticleTag::getArticleId, Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
+
+        Map<Long, Long> likeCountMap = articleLikeMapper.selectList(
+                new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId,articleIds))
+                .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
+
+        Map<Long, Long> articleCollectMap = articleCollectMapper.selectList(
+                new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId,articleIds))
+                .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
+
+        for (ArticleResponse response : list) {
+            response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
+            response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
+            response.setCollectCount(articleCollectMap.getOrDefault(response.getId(), 0L));
+        }
+        PageResponse<ArticleResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
     }
 }

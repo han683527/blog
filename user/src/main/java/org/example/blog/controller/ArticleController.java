@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
@@ -45,5 +46,22 @@ public class ArticleController {
     public Result<String> updateArticleById(@Valid @RequestBody ArticleRequest request) {
         articleService.updateArticleById(request);
         return Result.success("修改成功");
+    }
+
+    @PostMapping("/like/{id}")
+    public Result<String> likeArticleById(@PathVariable Long id) {
+        articleService.likeArticleById(id);
+        return Result.success("操作成功");
+    }
+
+    @PostMapping("/collect/{id}")
+    public Result<String> collectArticleById(@PathVariable Long id) {
+        articleService.collectArticleById(id);
+        return Result.success("操作成功");
+    }
+
+    @PostMapping("list/collect")
+    public Result<PageResponse<ArticleResponse>> pageCollectArticle(PageRequest request) {
+        return Result.success(articleService.pageCollectArticle(request));
     }
 }

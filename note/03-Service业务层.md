@@ -153,6 +153,74 @@ if (!articleIdList.isEmpty()) {
 
 **为什么不用循环？** N 篇文章查 N 次 SQL（N+1 问题），批量查只用 2 次 SQL 就解决。
 
+### 同样的模式用于点赞数 / 收藏数
+
+```java
+// 查询所有文章的点赞数
+Map<Long, Long> likeCountMap = articleLikeMapper.selectList(
+        new LambdaQueryWrapper<ArticleLike>()
+                .in(ArticleLike::getArticleId, articleIdList))
+        .stream().collect(Collectors.groupingBy(
+                ArticleLike::getArticleId,
+                Collectors.counting()));
+
+// 查询所有文章的收藏数（代码一模一样，换个表名）
+Map<Long, Long> collectCountMap = articleCollectMapper.selectList(...)
+        .stream().collect(Collectors.groupingBy(
+                ArticleCollect::getArticleId,
+                Collectors.counting()));
+
+// 设置到 response
+for (ArticleResponse resp : list) {
+    resp.setLikeCount(likeCountMap.getOrDefault(resp.getId(), 0L));
+    resp.setCollectCount(collectCountMap.getOrDefault(resp.getId(), 0L));
+}
+```
+
+`groupingBy + counting` = 模拟 SQL 的 `GROUP BY ... COUNT(*)`，在 Java 内存中完成聚合，避免 N+1 次 `selectCount`。
+
+## 切换操作（Toggle）
+
+点赞和收藏是**开关操作**：同一个请求，有则取消，无则添加。
+
+```java
+public void likeArticleById(Long id) {
+    Long userId = UserContext.get();
+    LambdaQueryWrapper<ArticleLike> wrapper = new LambdaQueryWrapper<>();
+    wrapper.eq(ArticleLike::getUserId, userId)
+           .eq(ArticleLike::getArticleId, id);
+
+    if (articleLikeMapper.selectCount(wrapper) > 0) {
+        articleLikeMapper.delete(wrapper);   // 已点赞 → 取消
+    } else {
+        ArticleLike like = new ArticleLike();
+        like.setUserId(userId);
+        like.setArticleId(id);
+        articleLikeMapper.insert(like);      // 未点赞 → 添加
+    }
+}
+```
+
+**为什么不用单独的方法区分点赞和取消？** 前端只需要一个按钮点来点去，后端判断状态，接口更少。
+
+## 收藏列表（一对多查询）
+
+```java
+// 查当前用户收藏的文章
+List<ArticleCollect> collects = articleCollectMapper.selectList(
+        new LambdaQueryWrapper<ArticleCollect>()
+                .eq(ArticleCollect::getUserId, userId)
+                .orderByDesc(ArticleCollect::getCreateTime));
+List<Long> articleIds = collects.stream()
+        .map(ArticleCollect::getArticleId).collect(Collectors.toList());
+
+// 用查到的 ID 列表去查文章
+wrapper.in(Article::getId, articleIds);
+Page<Article> p = this.page(new Page<>(page, size), wrapper);
+```
+
+这是一个**先查中间表 → 再查主表**的查询模式，跟按标签查文章的思路一样。
+
 ## 涉及的 Stream API
 
 ```java

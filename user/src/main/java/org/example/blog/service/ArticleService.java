@@ -3,6 +3,7 @@ package org.example.blog.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
@@ -25,4 +26,10 @@ public interface ArticleService extends IService<Article> {
 
     // 修改文章
     void updateArticleById(ArticleRequest request);
+
+    void likeArticleById(Long id);
+
+    void collectArticleById(Long id);
+
+    PageResponse<ArticleResponse> pageCollectArticle(PageRequest request);
 }

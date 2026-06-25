@@ -83,6 +83,26 @@ spring:
       port: 6379
 ```
 
+## 缓存与字段变更的问题
+
+当实体新增字段（如 `viewCount`）时，**旧缓存里的 JSON 没有这个字段**，反序列化后为 null，不是数据库的默认值。
+
+```java
+// 旧缓存的 JSON（没有 viewCount）
+{"id":22, "title":"xxx", ...}
+
+// 反序列化后 viewCount = null
+Article article = JSONUtil.toBean(cached, Article.class);
+```
+
+**解决：** 使用前加 null 判断
+
+```java
+article.setViewCount(article.getViewCount() == null ? 0 : article.getViewCount() + 1);
+```
+
+或者**清掉旧缓存**让它们重新从数据库加载。TTL 到期后也会自动刷新。
+
 ## 常用 Redis 命令
 
 ```bash

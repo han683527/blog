@@ -23,4 +23,8 @@ public class ArticleResponse {
     private LocalDateTime createTime;
 
     private Long viewCount;
+
+    private Long likeCount;
+
+    private Long collectCount;
 }
