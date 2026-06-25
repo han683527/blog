@@ -61,7 +61,7 @@ public class ArticleController {
     }
 
     @PostMapping("list/collect")
-    public Result<PageResponse<ArticleResponse>> pageCollectArticle(PageRequest request) {
+    public Result<PageResponse<ArticleResponse>> pageCollectArticle(@RequestBody PageRequest request) {
         return Result.success(articleService.pageCollectArticle(request));
     }
 }

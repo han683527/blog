@@ -106,6 +106,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         log.info("删除缓存: comment: {}", comment);
     }
 
+    // 查询文章/用户自己的评论
     @Override
     public PageResponse<CommentResponse> pageComment(CommentSearchRequest request) {
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();

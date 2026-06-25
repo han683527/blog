@@ -49,12 +49,4 @@ public class CommentController {
         commentService.updateCommentById(request);
         return Result.success("修改成功");
     }
-
-//    // 查询文章下的评论
-//    @GetMapping("/{id}/comments")
-//    public Result<PageResponse<CommentResponse>> pageCommentByArticleId(@PathVariable Long id,
-//                                                                        @RequestParam(defaultValue = "1") int page,
-//                                                                        @RequestParam(defaultValue = "10") int size) {
-//        return Result.success(commentService.pageCommentByArticleId(id, page, size));
-//    }
 }
