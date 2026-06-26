@@ -21,6 +21,4 @@ public interface CommentService extends IService<Comment> {
     void updateCommentById(CommentRequest request);
 
     PageResponse<CommentResponse> pageComment(CommentSearchRequest request);
-
-//    PageResponse<CommentResponse> pageCommentByArticleId(Long articleId, int page, int size);
 }

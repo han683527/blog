@@ -17,6 +17,7 @@ import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
+import org.example.blog.service.ArticleService;
 import org.example.blog.service.CommentService;
 import org.example.blog.service.NotificationService;
 import org.example.blog.util.UserContext;
@@ -33,9 +34,9 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
-    private final ArticleMapper articleMapper;
-
     private final StringRedisTemplate redisTemplate;
+
+    private final ArticleService articleService;
 
     private final NotificationService notificationService;
 
@@ -43,7 +44,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public void createCommentByArticleId(CommentRequest request) {
         Long articleId = request.getArticleId();
         if (request.getId() == null) {
-            if (articleMapper.selectById(articleId) == null) {
+            if (articleService.getArticleById(articleId) == null) {
                 throw new NotFoundException("文章不存在");
             }
             Comment comment = new Comment();

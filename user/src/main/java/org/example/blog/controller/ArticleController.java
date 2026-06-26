@@ -47,26 +47,4 @@ public class ArticleController {
         articleService.updateArticleById(request);
         return Result.success("修改成功");
     }
-
-    @PostMapping("/like/{id}")
-    public Result<String> likeArticleById(@PathVariable Long id) {
-        articleService.likeArticleById(id);
-        return Result.success("操作成功");
-    }
-
-    @PostMapping("/collect/{id}")
-    public Result<String> collectArticleById(@PathVariable Long id) {
-        articleService.collectArticleById(id);
-        return Result.success("操作成功");
-    }
-
-    @PostMapping("list/myCollect")
-    public Result<PageResponse<ArticleResponse>> pageMyCollectArticle(@RequestBody PageRequest request) {
-        return Result.success(articleService.pageMyCollectArticle(request));
-    }
-
-    @PostMapping("/list/myArticle")
-    public Result<PageResponse<ArticleResponse>> pageMyArticle(@RequestBody PageRequest request) {
-        return Result.success(articleService.pageMyArticle(request));
-    }
 }

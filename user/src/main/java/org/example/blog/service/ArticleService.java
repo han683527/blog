@@ -27,11 +27,4 @@ public interface ArticleService extends IService<Article> {
     // 修改文章
     void updateArticleById(ArticleRequest request);
 
-    void likeArticleById(Long id);
-
-    void collectArticleById(Long id);
-
-    PageResponse<ArticleResponse> pageMyCollectArticle(PageRequest request);
-
-    PageResponse<ArticleResponse> pageMyArticle(PageRequest request);
 }

@@ -46,19 +46,30 @@ URL 只表达"什么东西"，方法表达"干什么"。
 ```
 GET    /article              → 文章列表（可选 ?categoryId=1 按分类筛选）
 GET    /article/{id}         → 文章详情
-GET    /article/search/{kw}  → 搜索文章
+POST   /article/list         → 文章列表（分页 + 筛选，请求体传参）
 POST   /article              → 新增文章
-PUT    /article/{id}         → 修改文章
+PUT    /article              → 修改文章（id 在请求体中）
 DELETE /article/{id}         → 删除文章
-GET    /article/{id}/comments → 文章下的评论（子资源）
+
+POST   /like/{id}            → 点赞/取消点赞（toggle）
+POST   /like/list            → 我的点赞列表（分页）
+
+POST   /collect/{id}         → 收藏/取消收藏（toggle）
+POST   /collect/list         → 我的收藏列表（分页）
+
 GET    /comment              → 评论列表
 POST   /comment              → 新增评论
 PUT    /comment/{id}         → 修改评论
 DELETE /comment/{id}         → 删除评论
+
 GET    /category             → 分类列表
 POST   /category             → 新增分类
 PUT    /category/{id}        → 修改分类
 DELETE /category/{id}        → 删除分类
+
+GET    /notification         → 我的通知列表
+PUT    /notification/read    → 标记所有通知已读
+GET    /notification/unread  → 未读通知数
 ```
 
 `/article/{id}/comments` 这种路径表示评论是文章的子资源，URL 读起来就是"文章3的评论"。新增评论不需要在 URL 里写文章 ID，因为文章 ID 在请求体里。

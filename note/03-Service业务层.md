@@ -184,30 +184,47 @@ for (ArticleResponse resp : list) {
 点赞和收藏是**开关操作**：同一个请求，有则取消，无则添加。
 
 ```java
-public void likeArticleById(Long id) {
+public void toggle(Long articleId) {
     Long userId = UserContext.get();
     LambdaQueryWrapper<ArticleLike> wrapper = new LambdaQueryWrapper<>();
     wrapper.eq(ArticleLike::getUserId, userId)
-           .eq(ArticleLike::getArticleId, id);
+           .eq(ArticleLike::getArticleId, articleId);
 
-    if (articleLikeMapper.selectCount(wrapper) > 0) {
-        articleLikeMapper.delete(wrapper);   // 已点赞 → 取消
+    if (this.count(wrapper) > 0) {
+        this.remove(wrapper);   // 已点赞 → 取消
     } else {
         ArticleLike like = new ArticleLike();
         like.setUserId(userId);
-        like.setArticleId(id);
-        articleLikeMapper.insert(like);      // 未点赞 → 添加
+        like.setArticleId(articleId);
+        notificationService.createNotification(userId, articleId, "LIKE");
+        this.save(like);        // 未点赞 → 添加
     }
 }
 ```
 
 **为什么不用单独的方法区分点赞和取消？** 前端只需要一个按钮点来点去，后端判断状态，接口更少。
 
+### 提取为独立 Service
+
+点赞和收藏最初在 `ArticleServiceImpl` 里，后来各自提取成独立的 Service：
+
+| | Service | Mapper | 职责 |
+|---|---|---|---|
+| 点赞 | `LikeServiceImpl` | `ArticleLikeMapper` | toggle / getLikeCount / isLiked / getMyLike / pageMyLike |
+| 收藏 | `CollectServiceImpl` | `ArticleCollectMapper` | toggle / getCollectCount / isCollect / getMyCollect / pageMyCollect |
+
+提取原因：
+1. **单一职责** — `ArticleServiceImpl` 只处理文章 CRUD，点赞/收藏是独立的业务
+2. **依赖简化** — 各自只需要自己的 Mapper + `NotificationService`，不需要 `ArticleMapper`
+3. **复用** — `getMyLike` / `pageMyLike` 等操作在 Controller 层直接暴露，不用绕 ArticleService
+
 ## 收藏列表（一对多查询）
+
+在 `CollectServiceImpl` 中：
 
 ```java
 // 查当前用户收藏的文章
-List<ArticleCollect> collects = articleCollectMapper.selectList(
+List<ArticleCollect> collects = this.list(
         new LambdaQueryWrapper<ArticleCollect>()
                 .eq(ArticleCollect::getUserId, userId)
                 .orderByDesc(ArticleCollect::getCreateTime));
@@ -216,34 +233,45 @@ List<Long> articleIds = collects.stream()
 
 // 用查到的 ID 列表去查文章
 wrapper.in(Article::getId, articleIds);
-Page<Article> p = this.page(new Page<>(page, size), wrapper);
+Page<Article> p = articleMapper.selectPage(new Page<>(...), wrapper);
 ```
 
 这是一个**先查中间表 → 再查主表**的查询模式，跟按标签查文章的思路一样。
+
+### 批量查当前用户操作状态
+
+分页查完后，需要知道当前用户对哪些文章点过赞/收过藏——通过 `Set<Long>` 批量查：
+
+```java
+Set<Long> likedSet = likeService.getMyLike(articleIds, userId);
+Set<Long> collectSet = collectService.getMyCollect(articleIds, userId);
+
+for (ArticleResponse resp : list) {
+    resp.setIsLike(likedSet.contains(resp.getId()));
+    resp.setIsCollect(collectSet.contains(resp.getId()));
+}
+```
+
+Controller 层调 `articleQueryService.enrich()` 时已经设好了点赞数/收藏数/评论数，但**是否已点赞/收藏**需要结合当前用户查，由各 Controller 在返回前补充。
 
 ## 当前用户操作状态
 
 分页只返回点赞数/收藏数，但如果要显示按钮状态（已点赞/未点赞），需要查当前用户是否操作过：
 
 ```java
-// 查当前用户点赞了哪些文章（批量）
-Set<Long> likedArticleIds = articleLikeMapper.selectList(
-        new LambdaQueryWrapper<ArticleLike>()
-                .eq(ArticleLike::getUserId, userId)
-                .in(ArticleLike::getArticleId, articleIdList))
-        .stream().map(ArticleLike::getArticleId)
-        .collect(Collectors.toSet());
+// 批量查（CollectService / LikeService 中实现）
+Set<Long> likedArticleIds = likeService.getMyLike(articleIds, userId);
+Set<Long> collectArticleIds = collectService.getMyCollect(articleIds, userId);
 
 // 设值时检查是否在集合里
 response.setIsLike(likedArticleIds.contains(response.getId()));
+response.setIsCollect(collectArticleIds.contains(response.getId()));
 ```
 
-**单品查询**直接 `selectCount` + 两个 `eq`：
+**单品查询**直接调 Service 方法：
 ```java
-boolean isLiked = articleLikeMapper.selectCount(
-    new LambdaQueryWrapper<ArticleLike>()
-        .eq(ArticleLike::getUserId, userId)
-        .eq(ArticleLike::getArticleId, id)) > 0;
+boolean isLiked = likeService.isLiked(articleId, userId);
+boolean isCollect = collectService.isCollect(articleId, userId);
 ```
 
 ## 通知系统
@@ -302,32 +330,109 @@ public void markAllAsRead() {
 }
 ```
 
-## 消除重复代码（私有方法抽取）
+`ServiceImpl.update(entity, wrapper)` = `UPDATE 表 SET ... WHERE 条件`，批量更新不需要逐条操作。
 
-当多个方法有相同的「查标签 → 查点赞 → 查收藏 → 设值」逻辑时，抽成私有方法：
+## 服务拆分（分离关注点）
+
+随着功能增多，`ArticleServiceImpl` 不断膨胀。以下是拆分历程：
+
+### 拆前：ArticleServiceImpl 职责过重
+
+```
+ArticleServiceImpl
+├── 文章 CRUD
+├── 点赞 toggle / 计数 / 列表
+├── 收藏 toggle / 计数 / 列表
+├── 批量查标签
+├── 批量查评论数
+└── 缓存处理
+```
+
+### 拆后：职责分明
+
+```
+ArticleServiceImpl           → 文章 CRUD + 缓存
+LikeServiceImpl              → 点赞相关操作
+CollectServiceImpl           → 收藏相关操作
+ArticleQueryService(@Component) → 批量查标签/点赞数/收藏数/评论数
+```
+
+### 判断标准
+
+什么功能该抽离成独立 Service？
+
+| 条件 | 例子 | 结论 |
+|---|---|---|
+| 有自己的数据表 | ArticleLike → LikeService | ✅ 可以抽 |
+| 多个 Service 共用逻辑 | enrich() 被 4 个方法调用 | ✅ 可以抽 |
+| 只用到 Mapper 基本方法 | selectCount + insert + delete | ✅ 适合抽 |
+| 涉及复杂事务和业务规则 | 文章创建（分类校验 + 标签写入） | ⚠️ 保持内聚 |
+
+### 依赖方向
+
+```
+Controller → ArticleService → LikeService / CollectService / ArticleQueryService
+          → LikeService (direct)
+          → CollectService (direct)
+```
+
+Controller 可以直调 `LikeService` / `CollectService`，不需要绕 `ArticleService`。这样 `ArticleService` 的接口保持精简，新增点赞相关 API 也不用改 `ArticleService`。
+
+
+
+## 消除重复代码（服务抽取）
+
+当多个方法有相同的「查标签 → 查点赞 → 查收藏 → 设值」逻辑时，逐步抽离：
+
+### 第 1 步：私有方法
+
+在 `ArticleServiceImpl` 中抽成私有方法，4 个分页方法各减 25 行。
+
+### 第 2 步：独立 @Component
+
+进一步抽成单独的 `ArticleQueryService`，用 `@Component` 注册：
 
 ```java
-private void enrichArticleResponses(List<ArticleResponse> list, List<Long> articleIdList) {
-    if (articleIdList == null || articleIdList.isEmpty()) return;
+@Component
+@RequiredArgsConstructor
+public class ArticleQueryService {
+    private final ArticleTagMapper articleTagMapper;
+    private final CommentMapper commentMapper;
+    private final ArticleLikeMapper articleLikeMapper;
+    private final ArticleCollectMapper articleCollectMapper;
 
-    // 批量查标签、点赞数、收藏数、评论数
-    // ...
+    public void enrich(List<ArticleResponse> list, List<Long> articleIds) {
+        if (articleIds == null || articleIds.isEmpty()) return;
 
-    for (ArticleResponse response : list) {
-        response.setTags(...);
-        response.setLikeCount(...);
+        // 一次查全部标签
+        List<ArticleTag> allTags = articleTagMapper.selectList(
+                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIds));
+        Map<Long, List<Long>> tagMap = allTags.stream()
+                .collect(Collectors.groupingBy(ArticleTag::getArticleId,
+                        Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
+
+        // 点赞数、收藏数、评论数 — 都是同样的模式
+        Map<Long, Long> likeCountMap = articleLikeMapper.selectList(...)
+                .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
         // ...
+
+        for (ArticleResponse response : list) {
+            response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
+            response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
+            response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
+            response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
+        }
     }
 }
 ```
 
-调用处变成一行：
+**好处：** `ArticleServiceImpl` 不再持有 4 个 Mapper，调用处变成一行：
 
 ```java
-enrichArticleResponses(list, articleIdList);
+articleQueryService.enrich(list, articleIdList);
 ```
 
-**好处：** 4 个分页方法原来各有 25 行重复代码，抽出来每个方法只要 1 行。新增字段时也只需改一个地方。
+坏处是每个方法的参数检查（`null/empty`）和 Service 里的单品查询（`getArticleById`）仍然保留内联代码，因为单品走的查数据库和缓存逻辑，不走批量查。
 
 ## 涉及的 Stream API
 

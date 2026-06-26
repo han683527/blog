@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
-import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.*;
@@ -17,14 +16,13 @@ import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.*;
 import org.example.blog.service.ArticleService;
-import org.example.blog.service.NotificationService;
+import org.example.blog.service.CollectService;
+import org.example.blog.service.LikeService;
 import org.example.blog.util.UserContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -43,11 +41,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
     private final CategoryMapper categoryMapper;
 
-    private final ArticleLikeMapper articleLikeMapper;
+    private final LikeService likeService;
 
-    private final ArticleCollectMapper articleCollectMapper;
+    private final CollectService collectService;
 
-    private final NotificationService notificationService;
+    private final ArticleQueryService articleQueryService;
 
     @Override
     public void createArticle(ArticleRequest request) {
@@ -128,7 +126,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<Long> articleIdList = p.getRecords().stream()
                 .map(Article::getId).
                 collect(Collectors.toList());
-        enrichArticleResponses(list, articleIdList);
+        articleQueryService.enrich(list, articleIdList);
 
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
@@ -157,10 +155,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
 
             // 查点赞数
-            Long articleLikeCount = articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getArticleId, id));
+            Long articleLikeCount = likeService.getLikeCount(id);
 
             // 查收藏数
-            Long articleCollectCount = articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getArticleId, id));
+            Long articleCollectCount = collectService.getCollectCount(id);
 
             // 查评论数
             Long commentCount = commentMapper.selectCount(new LambdaQueryWrapper<Comment>().eq(Comment::getArticleId, id));
@@ -168,9 +166,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
             response.setTags(tagIds);
             response.setLikeCount(articleLikeCount);
-            response.setIsLike(articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getUserId,UserContext.get()).eq(ArticleLike::getArticleId, id)) > 0);
+            response.setIsLike(likeService.isLiked(id,UserContext.get()));
             response.setCollectCount(articleCollectCount);
-            response.setIsCollect(articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getUserId,UserContext.get()).eq(ArticleCollect::getArticleId,id)) > 0);
+            response.setIsCollect(collectService.isCollect(id,UserContext.get()));
             response.setCommentCount(commentCount);
             return response;
         }
@@ -194,10 +192,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
 
         // 查点赞数
-        Long articleLikeCount = articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getArticleId, id));
+        Long articleLikeCount = likeService.getLikeCount(id);
 
         // 查收藏数
-        Long articleCollectCount = articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getArticleId, id));
+        Long articleCollectCount = collectService.getCollectCount(id);
 
         // 查评论数
         Long commentCount = commentMapper.selectCount(new LambdaQueryWrapper<Comment>().eq(Comment::getArticleId, id));
@@ -205,9 +203,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
         response.setTags(tagIds);
         response.setLikeCount(articleLikeCount);
-        response.setIsLike(articleLikeMapper.selectCount(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getUserId,UserContext.get()).eq(ArticleLike::getArticleId, id)) > 0);
+        response.setIsLike(likeService.isLiked(id,UserContext.get()));
         response.setCollectCount(articleCollectCount);
-        response.setIsCollect(articleCollectMapper.selectCount(new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getUserId,UserContext.get()).eq(ArticleCollect::getArticleId,id)) > 0);
+        response.setIsCollect(collectService.isCollect(id,UserContext.get()));
         response.setCommentCount(commentCount);
         return response;
     }
@@ -272,112 +270,4 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         log.info("删除缓存: article: {}", id);
     }
 
-    @Override
-    public void likeArticleById(Long id) {
-        Long userId = UserContext.get();
-        LambdaQueryWrapper<ArticleLike> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ArticleLike::getUserId, userId).eq(ArticleLike::getArticleId, id);
-        if (articleLikeMapper.selectCount(wrapper) > 0) {
-            // 已点赞 -> 取消点赞
-            articleLikeMapper.delete(wrapper);
-        } else {
-            // 没点赞 -> 点赞
-            ArticleLike articleLike = new ArticleLike();
-            articleLike.setUserId(userId);
-            articleLike.setArticleId(id);
-            notificationService.createNotification(userId,id,"LIKE");
-            articleLikeMapper.insert(articleLike);
-        }
-    }
-
-    public void collectArticleById(Long id) {
-        Long userId = UserContext.get();
-        LambdaQueryWrapper<ArticleCollect> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ArticleCollect::getUserId, userId).eq(ArticleCollect::getArticleId, id);
-        if (articleCollectMapper.selectCount(wrapper) > 0) {
-            articleCollectMapper.delete(wrapper);
-        } else {
-            ArticleCollect articleCollect = new ArticleCollect();
-            articleCollect.setUserId(userId);
-            articleCollect.setArticleId(id);
-            notificationService.createNotification(userId,id,"COLLECT");
-            articleCollectMapper.insert(articleCollect);
-        }
-    }
-
-    private void enrichArticleResponses(List<ArticleResponse> list, List<Long> articleIdList) {
-        if (articleIdList == null || articleIdList.isEmpty()) return;
-
-        // 标签
-        List<ArticleTag> allTags = articleTagMapper.selectList(
-                new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getArticleId, articleIdList));
-        Map<Long, List<Long>> tagMap = allTags.stream()
-                .collect(Collectors.groupingBy(ArticleTag::getArticleId,
-                        Collectors.mapping(ArticleTag::getTagId, Collectors.toList())));
-
-        // 点赞数
-        Map<Long, Long> likeCountMap = articleLikeMapper.selectList(
-                        new LambdaQueryWrapper<ArticleLike>().in(ArticleLike::getArticleId, articleIdList))
-                .stream().collect(Collectors.groupingBy(ArticleLike::getArticleId, Collectors.counting()));
-
-        // 收藏数
-        Map<Long, Long> collectCountMap = articleCollectMapper.selectList(
-                        new LambdaQueryWrapper<ArticleCollect>().in(ArticleCollect::getArticleId, articleIdList))
-                .stream().collect(Collectors.groupingBy(ArticleCollect::getArticleId, Collectors.counting()));
-
-        // 评论数
-        Map<Long, Long> commentCountMap = commentMapper.selectList(
-                        new LambdaQueryWrapper<Comment>().in(Comment::getArticleId, articleIdList))
-                .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
-
-        for (ArticleResponse response : list) {
-            response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
-            response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
-            response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
-            response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
-        }
-    }
-
-    public PageResponse<ArticleResponse> pageMyCollectArticle(PageRequest request) {
-        Long userId = UserContext.get();
-        // 根据 userId 查询用户收藏的文章 ids
-        List<ArticleCollect> articleCollects = articleCollectMapper.selectList(
-                new LambdaQueryWrapper<ArticleCollect>().eq(ArticleCollect::getUserId, userId)
-                        .orderByDesc(ArticleCollect::getCreateTime));
-        List<Long> articleIds = articleCollects.stream().map(ArticleCollect::getArticleId).collect(Collectors.toList());
-
-        // 根据文章 ids 查文章
-        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(Article::getId, articleIds);
-        Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
-        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
-
-        enrichArticleResponses(list, articleIds);
-        PageResponse<ArticleResponse> response = new PageResponse<>();
-        response.setTotal(p.getTotal());
-        response.setList(list);
-        return response;
-    }
-
-
-    public PageResponse<ArticleResponse> pageMyArticle(PageRequest request) {
-        Long userId = UserContext.get();
-
-        List<Article> articles = this.list(
-                new LambdaQueryWrapper<Article>().eq(Article::getAuthorId, userId).orderByDesc(Article::getCreateTime));
-        List<Long> articleIds = articles.stream().map(Article::getId).collect(Collectors.toList());
-
-        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(Article::getId, articleIds);
-        wrapper.orderByDesc(Article::getCreateTime);
-        Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
-        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
-
-        enrichArticleResponses(list, articleIds);
-
-        PageResponse<ArticleResponse> response = new PageResponse<>();
-        response.setTotal(p.getTotal());
-        response.setList(list);
-        return response;
-    }
 }
