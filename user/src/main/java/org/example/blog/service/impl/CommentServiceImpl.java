@@ -5,6 +5,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.CommentSearchRequest;
@@ -17,6 +18,7 @@ import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.CommentService;
+import org.example.blog.service.NotificationService;
 import org.example.blog.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -28,13 +30,14 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
-    @Autowired
-    private ArticleMapper articleMapper;
+    private final ArticleMapper articleMapper;
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate;
+
+    private final NotificationService notificationService;
 
     @Override
     public void createCommentByArticleId(CommentRequest request) {
@@ -48,6 +51,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             comment.setArticleId(articleId);
             comment.setUserId(UserContext.get());
             this.save(comment);
+            notificationService.createNotification(UserContext.get(),articleId,"COMMENT");
         }
     }
 

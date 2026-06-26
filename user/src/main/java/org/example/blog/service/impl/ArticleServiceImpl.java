@@ -17,6 +17,7 @@ import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.*;
 import org.example.blog.service.ArticleService;
+import org.example.blog.service.NotificationService;
 import org.example.blog.util.UserContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private final ArticleLikeMapper articleLikeMapper;
 
     private final ArticleCollectMapper articleCollectMapper;
+
+    private final NotificationService notificationService;
 
     @Override
     public void createArticle(ArticleRequest request) {
@@ -282,6 +285,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             ArticleLike articleLike = new ArticleLike();
             articleLike.setUserId(userId);
             articleLike.setArticleId(id);
+            notificationService.createNotification(userId,id,"LIKE");
             articleLikeMapper.insert(articleLike);
         }
     }
@@ -296,6 +300,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             ArticleCollect articleCollect = new ArticleCollect();
             articleCollect.setUserId(userId);
             articleCollect.setArticleId(id);
+            notificationService.createNotification(userId,id,"COLLECT");
             articleCollectMapper.insert(articleCollect);
         }
     }

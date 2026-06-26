@@ -221,6 +221,114 @@ Page<Article> p = this.page(new Page<>(page, size), wrapper);
 
 这是一个**先查中间表 → 再查主表**的查询模式，跟按标签查文章的思路一样。
 
+## 当前用户操作状态
+
+分页只返回点赞数/收藏数，但如果要显示按钮状态（已点赞/未点赞），需要查当前用户是否操作过：
+
+```java
+// 查当前用户点赞了哪些文章（批量）
+Set<Long> likedArticleIds = articleLikeMapper.selectList(
+        new LambdaQueryWrapper<ArticleLike>()
+                .eq(ArticleLike::getUserId, userId)
+                .in(ArticleLike::getArticleId, articleIdList))
+        .stream().map(ArticleLike::getArticleId)
+        .collect(Collectors.toSet());
+
+// 设值时检查是否在集合里
+response.setIsLike(likedArticleIds.contains(response.getId()));
+```
+
+**单品查询**直接 `selectCount` + 两个 `eq`：
+```java
+boolean isLiked = articleLikeMapper.selectCount(
+    new LambdaQueryWrapper<ArticleLike>()
+        .eq(ArticleLike::getUserId, userId)
+        .eq(ArticleLike::getArticleId, id)) > 0;
+```
+
+## 通知系统
+
+操作（点赞/收藏/评论）时，如果操作者不是文章作者，创建一条通知。
+
+```java
+public void createNotification(Long actorId, Long articleId, String type) {
+    Article article = articleService.getById(articleId);
+
+    // 自己操作自己不通知
+    if (article.getAuthorId().equals(actorId)) return;
+
+    Notification notification = new Notification();
+    notification.setUserId(article.getAuthorId());  // 接收人 = 文章作者
+    notification.setActorId(actorId);                // 操作人
+    notification.setArticleId(articleId);
+    notification.setType(type);
+    this.save(notification);
+}
+```
+
+**调用时机：** 在 Toggle 的 insert 分支里调用，delete 分支不调用（取消操作不通知）。
+
+```java
+// 点赞时（LikeServiceImpl 中）
+notificationService.createNotification(userId, articleId, "LIKE");
+this.save(articleLike);
+
+// 收藏时（CollectServiceImpl 中）
+notificationService.createNotification(userId, articleId, "COLLECT");
+this.save(articleCollect);
+```
+
+**注意：** 现在通知在各自的 Service 中触发，不再是 `ArticleServiceImpl` 负责。解耦后每个 Service 自己管理自己的通知。
+
+### 通知的其他操作
+
+| 方法 | 作用 |
+|---|---|
+| `pageNotifications(pageRequest)` | 当前用户的通知列表（分页） |
+| `markAsRead(id)` | 标记单条已读 |
+| `markAllAsRead()` | 全部标记已读 |
+| `getUnreadCount()` | 未读通知数 |
+
+全部已读通过 `update(notification, wrapper)` 实现 —— 不用循环逐条 update，一条 SQL 搞定：
+
+```java
+public void markAllAsRead() {
+    LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
+    wrapper.eq(Notification::getUserId, UserContext.get())
+           .eq(Notification::isRead, false);
+    Notification notification = new Notification();
+    notification.setRead(true);
+    this.update(notification, wrapper);  // UPDATE ... WHERE user_id=? AND is_read=false
+}
+```
+
+## 消除重复代码（私有方法抽取）
+
+当多个方法有相同的「查标签 → 查点赞 → 查收藏 → 设值」逻辑时，抽成私有方法：
+
+```java
+private void enrichArticleResponses(List<ArticleResponse> list, List<Long> articleIdList) {
+    if (articleIdList == null || articleIdList.isEmpty()) return;
+
+    // 批量查标签、点赞数、收藏数、评论数
+    // ...
+
+    for (ArticleResponse response : list) {
+        response.setTags(...);
+        response.setLikeCount(...);
+        // ...
+    }
+}
+```
+
+调用处变成一行：
+
+```java
+enrichArticleResponses(list, articleIdList);
+```
+
+**好处：** 4 个分页方法原来各有 25 行重复代码，抽出来每个方法只要 1 行。新增字段时也只需改一个地方。
+
 ## 涉及的 Stream API
 
 ```java
