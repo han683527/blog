@@ -73,13 +73,20 @@ public class LikeServiceImpl extends ServiceImpl<ArticleLikeMapper, ArticleLike>
         List<ArticleLike> likes = this.list(new LambdaQueryWrapper<ArticleLike>().eq(ArticleLike::getUserId,userId).orderByDesc(ArticleLike::getCreateTime));
         List<Long> articleIds = likes.stream().map(ArticleLike::getArticleId).collect(Collectors.toList());
 
+        if (articleIds.isEmpty()) {
+            PageResponse<ArticleResponse> response = new PageResponse<>();
+            response.setTotal(0L);
+            response.setList(List.of());
+            return response;
+        }
+
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(Article::getId, articleIds).orderByDesc(Article::getCreateTime);
         Page<Article> p = new Page<>(request.getPage(), request.getSize());
         articleMapper.selectPage(p, wrapper);
         List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
 
-        articleQueryService.enrich(list, articleIds);
+        articleQueryService.enrich(list, articleIds, UserContext.get());
 
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());

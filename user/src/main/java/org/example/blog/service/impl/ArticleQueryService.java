@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,7 +24,7 @@ public class ArticleQueryService {
     private final ArticleLikeMapper articleLikeMapper;
     private final ArticleCollectMapper articleCollectMapper;
 
-    public void enrich(List<ArticleResponse> list, List<Long> articleIds) {
+    public void enrich(List<ArticleResponse> list, List<Long> articleIds, Long userId) {
         if (articleIds == null || articleIds.isEmpty()) return;
 
         // 标签
@@ -46,10 +47,24 @@ public class ArticleQueryService {
                         new LambdaQueryWrapper<Comment>().in(Comment::getArticleId, articleIds))
                 .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
 
+        // 当前用户点赞/收藏状态
+        Set<Long> likedIds = articleLikeMapper.selectList(
+                        new LambdaQueryWrapper<ArticleLike>()
+                                .eq(ArticleLike::getUserId, userId)
+                                .in(ArticleLike::getArticleId, articleIds))
+                .stream().map(ArticleLike::getArticleId).collect(Collectors.toSet());
+        Set<Long> collectedIds = articleCollectMapper.selectList(
+                        new LambdaQueryWrapper<ArticleCollect>()
+                                .eq(ArticleCollect::getUserId, userId)
+                                .in(ArticleCollect::getArticleId, articleIds))
+                .stream().map(ArticleCollect::getArticleId).collect(Collectors.toSet());
+
         for (ArticleResponse response : list) {
             response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
             response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
+            response.setIsLike(likedIds.contains(response.getId()));
             response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));
+            response.setIsCollect(collectedIds.contains(response.getId()));
             response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
         }
     }

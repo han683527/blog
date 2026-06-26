@@ -252,27 +252,28 @@ for (ArticleResponse resp : list) {
 }
 ```
 
-Controller 层调 `articleQueryService.enrich()` 时已经设好了点赞数/收藏数/评论数，但**是否已点赞/收藏**需要结合当前用户查，由各 Controller 在返回前补充。
+现在 `articleQueryService.enrich()` 接受了 `userId` 参数后，批量查时会一并设置 `isLike`/`isCollect`，Controller 不再需要额外处理。
 
 ## 当前用户操作状态
 
-分页只返回点赞数/收藏数，但如果要显示按钮状态（已点赞/未点赞），需要查当前用户是否操作过：
-
-```java
-// 批量查（CollectService / LikeService 中实现）
-Set<Long> likedArticleIds = likeService.getMyLike(articleIds, userId);
-Set<Long> collectArticleIds = collectService.getMyCollect(articleIds, userId);
-
-// 设值时检查是否在集合里
-response.setIsLike(likedArticleIds.contains(response.getId()));
-response.setIsCollect(collectArticleIds.contains(response.getId()));
-```
-
-**单品查询**直接调 Service 方法：
+**单品查询**（文章详情页）直接调 Service 方法：
 ```java
 boolean isLiked = likeService.isLiked(articleId, userId);
 boolean isCollect = collectService.isCollect(articleId, userId);
 ```
+
+**批量查询**（列表页）由 `enrich()` 内部批量查完后设置到每个 `ArticleResponse`。
+
+```java
+// enrich() 内部逻辑
+Set<Long> likedIds = articleLikeMapper.selectList(
+        eq(ArticleLike::getUserId, userId).in(ArticleLike::getArticleId, articleIds))
+        .stream().map(ArticleLike::getArticleId).collect(Collectors.toSet());
+// 在循环中设置
+response.setIsLike(likedIds.contains(response.getId()));
+```
+
+为什么 Controller 不补这个字段？—— `ArticleQueryService` 持有 Mapper 直接查，不走 Service，避免循环依赖。
 
 ## 通知系统
 
@@ -401,7 +402,7 @@ public class ArticleQueryService {
     private final ArticleLikeMapper articleLikeMapper;
     private final ArticleCollectMapper articleCollectMapper;
 
-    public void enrich(List<ArticleResponse> list, List<Long> articleIds) {
+    public void enrich(List<ArticleResponse> list, List<Long> articleIds, Long userId) {
         if (articleIds == null || articleIds.isEmpty()) return;
 
         // 一次查全部标签
@@ -429,10 +430,29 @@ public class ArticleQueryService {
 **好处：** `ArticleServiceImpl` 不再持有 4 个 Mapper，调用处变成一行：
 
 ```java
-articleQueryService.enrich(list, articleIdList);
+articleQueryService.enrich(list, articleIdList, UserContext.get());
 ```
 
+`enrich()` 现在也设置 `isLike`/`isCollect`（需要当前用户 ID），避免了列表返回时这两个字段为 null 的问题。因为 `ArticleQueryService` 只持有 Mapper，不依赖其他 Service，不会循环依赖。
+
 坏处是每个方法的参数检查（`null/empty`）和 Service 里的单品查询（`getArticleById`）仍然保留内联代码，因为单品走的查数据库和缓存逻辑，不走批量查。
+
+## IN () 空列表 SQL 错误
+
+当用户没有点赞/收藏时，`articleIds` 是空列表，MyBatis-Plus 生成 `WHERE id IN ()` 导致 MySQL 语法错误。
+
+**修复：** 在查询前提前返回空分页：
+
+```java
+if (articleIds.isEmpty()) {
+    PageResponse<ArticleResponse> response = new PageResponse<>();
+    response.setTotal(0L);
+    response.setList(List.of());
+    return response;
+}
+```
+
+所有「先查中间表→再查主表」的分页方法都要加这个守卫（`pageMyLike`、`pageMyCollect`）。
 
 ## 涉及的 Stream API
 

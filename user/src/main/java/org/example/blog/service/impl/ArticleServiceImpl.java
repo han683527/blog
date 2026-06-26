@@ -126,7 +126,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         List<Long> articleIdList = p.getRecords().stream()
                 .map(Article::getId).
                 collect(Collectors.toList());
-        articleQueryService.enrich(list, articleIdList);
+        articleQueryService.enrich(list, articleIdList, UserContext.get());
 
         PageResponse<ArticleResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());

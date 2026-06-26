@@ -55,7 +55,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     public void markAsRead(Long id) {
         Notification notification = new Notification();
         notification.setId(id);
-        notification.setRead(true);
+        notification.setReadFlag(true);
         this.updateById(notification);
     }
 
@@ -63,16 +63,16 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     public void markAllAsRead() {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getUserId, UserContext.get())
-                .eq(Notification::isRead, false);
+                .eq(Notification::isReadFlag, false);
         Notification notification = new Notification();
-        notification.setRead(true);
+        notification.setReadFlag(true);
         this.update(notification,wrapper);
     }
 
     public Long getUnreadCount() {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getUserId,UserContext.get())
-                .eq(Notification::isRead, false);
+                .eq(Notification::isReadFlag, false);
         return this.count(wrapper);
     }
 }
