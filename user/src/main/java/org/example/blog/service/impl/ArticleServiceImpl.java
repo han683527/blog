@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
+import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.*;
@@ -270,4 +271,21 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         log.info("删除缓存: article: {}", id);
     }
 
+    @Override
+    public PageResponse<ArticleResponse> pageMyArticle(PageRequest request){
+        Long userId = UserContext.get();
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(Article::getAuthorId, userId);
+        wrapper.orderByDesc(Article::getCreateTime);
+        Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
+
+        List<Long> articleIds = p.getRecords().stream().map(Article::getId).collect(Collectors.toList());
+        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
+        articleQueryService.enrich(list, articleIds, UserContext.get());
+
+        PageResponse<ArticleResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
+    }
 }
