@@ -343,6 +343,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                     "/user/register",   // 注册不需要登录
                     "/user/login",      // 登录不需要登录
+                    "/user/code",       // 获取验证码不需要登录
+                    "/user/refresh",    // 刷新 token 不需要登录
+                    "/upload/**",       // 静态资源（头像图片）
                     "/swagger-ui/**",
                     "/v3/api-docs/**"
                 );
@@ -350,7 +353,19 @@ public class WebConfig implements WebMvcConfigurer {
 }
 ```
 
-注意：`/user/refresh` 和 `/user/logout` 不在白名单中，因为它们需要 token 认证。
+**白名单说明：**
+
+| 路径 | 原因 |
+|---|---|
+| `/user/register` | 注册时还没 token |
+| `/user/login` | 登录时还没 token |
+| `/user/code` | 获取验证码时还没 token |
+| `/user/refresh` | accessToken 过期时需要用 refreshToken 换新的，此时 accessToken 已无效 |
+| `/upload/**` | 头像图片是公开资源，不需要登录即可查看 |
+| `/swagger-ui/**` | Swagger 文档不需要登录 |
+| `/v3/api-docs/**` | OpenAPI 规范不需要登录 |
+
+注意：`/user/logout` 不在白名单中，因为它需要先验证 token 才能拉黑。
 
 ## 涉及的其他知识点
 

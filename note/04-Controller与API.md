@@ -42,6 +42,17 @@ URL 只表达"什么东西"，方法表达"干什么"。
 | `@PutMapping` | PUT | 全量修改 |
 | `@DeleteMapping` | DELETE | 删除 |
 
+### 文件上传接口的特殊处理
+
+上传文件的接口需要用 `consumes` 指定请求类型为 `multipart/form-data`，跟普通 JSON 接口区分：
+
+```java
+@PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public Result<String> uploadAvatar(@RequestParam MultipartFile file) { ... }
+```
+
+加了 `consumes` 后，这个接口不再接受 JSON body，Swagger 也不会显示 JSON 输入框。
+
 **本项目 API 设计：**
 ```
 GET    /article              → 文章列表（可选 ?categoryId=1 按分类筛选）
@@ -70,6 +81,14 @@ DELETE /category/{id}        → 删除分类
 GET    /notification         → 我的通知列表
 PUT    /notification/read    → 标记所有通知已读
 GET    /notification/unread  → 未读通知数
+
+POST   /user/register       → 注册（含邮箱验证码）
+POST   /user/login          → 登录
+POST   /user/refresh        → 刷新 token
+POST   /user/logout         → 登出
+POST   /user/code           → 发送邮箱验证码
+POST   /user/profile        → 修改昵称/密码
+POST   /user/avatar         → 上传头像
 ```
 
 `/article/{id}/comments` 这种路径表示评论是文章的子资源，URL 读起来就是"文章3的评论"。新增评论不需要在 URL 里写文章 ID，因为文章 ID 在请求体里。

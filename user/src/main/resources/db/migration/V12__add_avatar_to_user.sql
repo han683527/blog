@@ -1,0 +1,1 @@
+alter table User add column avatar varchar(255) default null comment '头像URL';

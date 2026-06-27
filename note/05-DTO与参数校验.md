@@ -104,6 +104,29 @@ public class ArticleRequest {
 
 **好处**：省一个 DTO 类，逻辑集中。
 
+### 部分更新：部分字段可选
+
+更新用户信息时，前端可能只想改昵称，不改密码。DTO 设计成所有字段可选：
+
+```java
+@Data
+public class UpdateUserRequest {
+    private String nickname;       // 只改昵称
+    private String oldPassword;    // 改密码时必填
+    private String newPassword;    // 改密码时必填
+}
+```
+
+Service 判断哪些字段不为 null 就更新哪些：
+```java
+if(request.getNickname() != null && !request.getNickname().isEmpty()) {
+    user.setNickname(request.getNickname());
+}
+if(request.getOldPassword() != null && request.getNewPassword() != null) {
+    // 验证旧密码 → 更新新密码
+}
+```
+
 ### 分页查询请求提成基类
 
 ```java

@@ -333,6 +333,176 @@ public void markAllAsRead() {
 
 `ServiceImpl.update(entity, wrapper)` = `UPDATE 表 SET ... WHERE 条件`，批量更新不需要逐条操作。
 
+## 邮箱验证码
+
+注册时通过邮箱验证，确保邮箱真实有效。
+
+### 发验证码
+
+```java
+public void sendCode(String email) {
+    String code = String.format("%06d", new Random().nextInt(999999));
+    redisTemplate.opsForValue().set("code:" + email, code, 5, TimeUnit.MINUTES);
+
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setFrom("xxx@qq.com");
+    message.setTo(email);
+    message.setSubject("博客注册验证码");
+    message.setText("您的验证码是: " + code + "，5 分钟之内有效");
+    mailSender.send(message);
+}
+```
+
+流程：生成 6 位随机码 → 存入 Redis（key=`code:email`，TTL=5 分钟）→ 发送邮件。
+
+### 注册时校验
+
+在原有注册逻辑前插入验证码校验：
+
+```java
+String cachedCode = redisTemplate.opsForValue().get("code:" + request.getEmail());
+if(cachedCode == null || !cachedCode.equals(request.getCode())) {
+    throw new BadRequestException("验证码错误或已过期");
+}
+```
+
+**先校验再查邮箱是否已注册**，避免暴露"该邮箱是否已注册"的信息。
+
+### 依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-mail</artifactId>
+</dependency>
+```
+
+### 配置
+
+```yaml
+spring:
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 你的QQ邮箱
+    password: 你的授权码（不是QQ密码）
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+```
+
+需要开启 QQ 邮箱的 POP3/SMTP 服务，生成授权码。
+
+### JavaMailSender vs MailSender
+
+- `MailSender`：顶层接口，只能发 `SimpleMailMessage`（纯文本）
+- `JavaMailSender`：子接口，额外支持 HTML 邮件、附件等
+
+项目中用 `JavaMailSender`，以后发模板邮件不用改代码。
+
+## 用户设置（修改昵称/密码）
+
+一个接口同时支持只改昵称、只改密码、或两个都改：
+
+```java
+public void updateProfile(UpdateUserRequest request) {
+    User user = this.getById(UserContext.get());
+
+    if(request.getNickname() != null && !request.getNickname().isEmpty()) {
+        user.setNickname(request.getNickname());
+    }
+
+    if(request.getOldPassword() != null && request.getNewPassword() != null) {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if(!encoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BadRequestException("旧密码错误");
+        }
+        user.setPassword(encoder.encode(request.getNewPassword()));
+    }
+
+    this.updateById(user);
+}
+```
+
+**更新密码需要旧密码验证**：BCrypt 无法解密，只能用 `matches(明文, 密文)` 验证。验证通过后用 `encode(新密码)` 加密再存。
+
+## 头像上传（文件上传）
+
+```java
+public String uploadAvatar(MultipartFile file) {
+    // 1. 校验文件类型
+    String contentType = file.getContentType();
+    if(contentType == null || !contentType.contains("image/")) {
+        throw new BadRequestException("只能上传图片文件");
+    }
+
+    // 2. 生成唯一文件名
+    String suffix = "." + StringUtils.getFilenameExtension(file.getOriginalFilename());
+    String fileName = UUID.randomUUID() + suffix;
+
+    // 3. 保存到本地
+    Files.createDirectories(Paths.get(uploadPath));
+    file.transferTo(new File(uploadPath, fileName));
+
+    // 4. 更新用户头像字段
+    String url = "/upload/" + fileName;
+    User user = this.getById(UserContext.get());
+    user.setAvatar(url);
+    this.updateById(user);
+
+    return url;
+}
+```
+
+**关键点：**
+- **文件类型校验**：通过 `contentType` 判断，防止任意文件上传
+- **UUID 重命名**：避免中文文件名乱码和重名覆盖
+- **`Files.createDirectories()`**：确保上传目录存在，不存在则自动创建
+- **`file.transferTo()`**：Spring 提供的便捷保存方法
+
+上传路径从配置文件读取：
+```yaml
+upload:
+  path: D:\java\blog\uploads
+```
+
+```java
+@Value("${upload.path}")
+private String uploadPath;
+```
+
+静态资源映射配合（见 `WebConfig`）：
+```java
+registry.addResourceHandler("/upload/**")
+        .addResourceLocations("file:D:\\java\\blog\\uploads\\");
+```
+
+这样上传的文件可以通过 `http://localhost:8080/upload/uuid.jpg` 访问。
+
+### Controller 接收文件上传
+
+```java
+@PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+public Result<String> uploadAvatar(@RequestParam MultipartFile file) {
+    return Result.success(userService.uploadAvatar(file));
+}
+```
+
+**`consumes = MediaType.MULTIPART_FORM_DATA_VALUE`** — 声明这个接口只接受 `multipart/form-data` 格式的请求。不加也可以（Spring 会根据 `MultipartFile` 参数自动识别），但加了更明确，Swagger 也不会展示 JSON Body 输入框。
+
+**`@RequestParam MultipartFile file`** — 接收前端上传的文件。`MultipartFile` 是 Spring 封装的文件上传对象，Spring 从 `multipart/form-data` 请求中自动解析文件并注入。可以省略 `@RequestParam`，但建议保留让参数名称更明确。
+
+### MultipartFile 常用方法
+
+| 方法 | 用途 |
+|---|---|
+| `getOriginalFilename()` | 原始文件名 |
+| `getContentType()` | 文件 MIME 类型（如 image/png） |
+| `getSize()` | 文件大小（字节） |
+| `isEmpty()` | 是否为空 |
+| `transferTo(File)` | 保存到指定路径 |
+| `getBytes()` | 获取文件字节数组 |
+
 ## 服务拆分（分离关注点）
 
 随着功能增多，`ArticleServiceImpl` 不断膨胀。以下是拆分历程：

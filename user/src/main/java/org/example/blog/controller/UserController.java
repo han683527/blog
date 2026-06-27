@@ -5,12 +5,15 @@ import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.LoginRequest;
 import org.example.blog.dto.request.RefreshTokenRequest;
 import org.example.blog.dto.request.RegisterRequest;
+import org.example.blog.dto.request.UpdateUserRequest;
 import org.example.blog.dto.response.LoginResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.User;
 import org.example.blog.service.UserService;
 import org.example.blog.util.JwtUtil;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/user")
@@ -44,5 +47,22 @@ public class UserController {
     public Result<String> logout(@RequestHeader("Authorization") String authHeader) {
         userService.logout(authHeader);
         return Result.success("登出成功");
+    }
+
+    @PostMapping("/code")
+    public Result<String> sendCode(@RequestParam String email){
+        userService.sendCode(email);
+        return Result.success("验证码已发送");
+    }
+
+    @PostMapping("/profile")
+    public Result<String> updateProfile(@Valid @RequestBody UpdateUserRequest request){
+        userService.updateProfile(request);
+        return Result.success("更新成功");
+    }
+
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<String> uploadProfile(MultipartFile file){
+        return Result.success(userService.uploadAvatar(file));
     }
 }

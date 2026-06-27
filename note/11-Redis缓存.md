@@ -56,6 +56,23 @@ TTL 是缓存的安全兜底机制：
 - **TTL 过期**是保障：防止删缓存失败（代码 bug、异常等）导致的数据永久不一致
 - 项目中的 TTL 设置：文章 10 分钟，评论 60 分钟，空值缓存 1 分钟
 
+### Redis 做验证码存储
+
+邮箱验证码也用 Redis 存储，利用 TTL 实现自动过期：
+
+```java
+// 存储验证码，5 分钟过期
+redisTemplate.opsForValue().set("code:" + email, code, 5, TimeUnit.MINUTES);
+
+// 取出验证码
+String cachedCode = redisTemplate.opsForValue().get("code:" + email);
+```
+
+**为什么用 Redis 不用数据库存验证码？**
+- Redis 自带 TTL 过期，不用手动清理
+- 验证码是临时数据，不需要持久化
+- Redis 读写快，高并发注册场景不会压到数据库
+
 ## 缓存雪崩（了解）
 
 大量缓存同时过期，请求全部打到数据库。解决：TTL 加随机偏移量，避免同时过期。
