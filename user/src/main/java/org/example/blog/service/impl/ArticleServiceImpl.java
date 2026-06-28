@@ -59,11 +59,14 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             article.setContent(request.getContent());
 
             // 判断分类是否存在
-            Category category = categoryMapper.selectById(request.getCategoryId());
-            if (category == null) {
-                throw new NotFoundException("分类不存在");
+            if (request.getCategoryId() != null) {
+                Category category = categoryMapper.selectById(request.getCategoryId());
+                if (category == null) {
+                    throw new NotFoundException("分类不存在");
+                }
+                article.setCategoryId(request.getCategoryId());
             }
-            article.setCategoryId(request.getCategoryId());
+
             this.save(article);
         }
 
@@ -167,9 +170,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
             response.setTags(tagIds);
             response.setLikeCount(articleLikeCount);
-            response.setIsLike(likeService.isLiked(id,UserContext.get()));
+            response.setIsLike(likeService.isLiked(id, UserContext.get()));
             response.setCollectCount(articleCollectCount);
-            response.setIsCollect(collectService.isCollect(id,UserContext.get()));
+            response.setIsCollect(collectService.isCollect(id, UserContext.get()));
             response.setCommentCount(commentCount);
             return response;
         }
@@ -204,9 +207,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
         response.setTags(tagIds);
         response.setLikeCount(articleLikeCount);
-        response.setIsLike(likeService.isLiked(id,UserContext.get()));
+        response.setIsLike(likeService.isLiked(id, UserContext.get()));
         response.setCollectCount(articleCollectCount);
-        response.setIsCollect(collectService.isCollect(id,UserContext.get()));
+        response.setIsCollect(collectService.isCollect(id, UserContext.get()));
         response.setCommentCount(commentCount);
         return response;
     }
@@ -241,11 +244,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         article.setTitle(request.getTitle());
         article.setContent(request.getContent());
-        Category category = categoryMapper.selectById(request.getCategoryId());
-        if (category == null) {
-            throw new NotFoundException("分类不存在");
+        if (request.getCategoryId() != null) {
+            Category category = categoryMapper.selectById(request.getCategoryId());
+            if (category == null) {
+                throw new NotFoundException("分类不存在");
+            }
+            article.setCategoryId(request.getCategoryId());
         }
-        article.setCategoryId(request.getCategoryId());
         this.updateById(article);
 
         LambdaQueryWrapper<ArticleTag> wrapper = new LambdaQueryWrapper<>();
@@ -272,7 +277,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public PageResponse<ArticleResponse> pageMyArticle(PageRequest request){
+    public PageResponse<ArticleResponse> pageMyArticle(PageRequest request) {
         Long userId = UserContext.get();
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(Article::getAuthorId, userId);
