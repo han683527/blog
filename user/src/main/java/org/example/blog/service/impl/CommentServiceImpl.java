@@ -9,19 +9,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.CommentSearchRequest;
-import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Comment;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
-import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.CommentMapper;
 import org.example.blog.service.ArticleService;
 import org.example.blog.service.CommentService;
 import org.example.blog.service.NotificationService;
+import org.example.blog.service.UserService;
 import org.example.blog.util.UserContext;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +37,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private final ArticleService articleService;
 
     private final NotificationService notificationService;
+
+    private final UserService userService;
 
     @Override
     public void createCommentByArticleId(CommentRequest request) {
@@ -134,5 +134,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         response.setTotal(p.getTotal());
         response.setList(list);
         return response;
+    }
+
+    @Override
+    public void adminDeleteCommentById(Long id) {
+        userService.checkAdmin();
+        Comment comment = this.getOptById(id)
+                .orElseThrow(() -> new NotFoundException("评论不存在"));
+
+        this.removeById(comment.getId());
+        redisTemplate.delete("comment:" + id);
+        log.info("管理员删除评论: {}",id);
     }
 }

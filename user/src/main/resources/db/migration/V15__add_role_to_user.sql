@@ -1,0 +1,1 @@
+alter table user add column role varchar(20) not null default 'user' comment '角色: user/admin';

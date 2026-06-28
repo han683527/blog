@@ -188,4 +188,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         return url;
     }
+
+    @Override
+    public void checkAdmin(){
+        User user = this.getById(UserContext.get());
+        if(!"admin".equals(user.getRole())){
+            throw new ForbiddenException("权限不足");
+        }
+    }
+
+    @Override
+    public void adminDeleteUserById(Long id){
+        checkAdmin();
+        User user = this.getOptById(id)
+                .orElseThrow(() -> new NotFoundException("用户不存在"));
+        this.removeById(id);
+    }
+
+    @Override
+    public PageResponse<User> pageUser(PageRequest request){
+        checkAdmin();
+        Page<User> p = this.page(new Page<>(request.getPage(),request.getSize()));
+        PageResponse<User> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(p.getRecords());
+        return response;
+    }
 }

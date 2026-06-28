@@ -19,6 +19,7 @@ import org.example.blog.mapper.*;
 import org.example.blog.service.ArticleService;
 import org.example.blog.service.CollectService;
 import org.example.blog.service.LikeService;
+import org.example.blog.service.UserService;
 import org.example.blog.util.UserContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private final CollectService collectService;
 
     private final ArticleQueryService articleQueryService;
+
+    private final UserService userService;
 
     @Override
     public void createArticle(ArticleRequest request) {
@@ -292,5 +295,24 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         response.setTotal(p.getTotal());
         response.setList(list);
         return response;
+    }
+
+    @Override
+    public void adminDeleteArticleById(Long id) {
+        userService.checkAdmin();
+        Article article = this.getOptById(id)
+                .orElseThrow(() -> new NotFoundException("文章不存在"));
+
+        LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<>();
+        commentWrapper.eq(Comment::getArticleId, id);
+        commentMapper.delete(commentWrapper);
+
+        LambdaQueryWrapper<ArticleTag> tagWrapper = new LambdaQueryWrapper<>();
+        tagWrapper.eq(ArticleTag::getArticleId, id);
+        articleTagMapper.delete(tagWrapper);
+
+        this.removeById(id);
+        redisTemplate.delete("article:" + id);
+        log.info("管理员删除文章: {}",id);
     }
 }

@@ -23,4 +23,10 @@ public interface UserService extends IService<User> {
     void updateProfile(UpdateUserRequest request);
 
     String uploadAvatar(MultipartFile file);
+
+    void checkAdmin();
+
+    void adminDeleteUserById(Long id);
+
+    PageResponse<User> pageUser(PageRequest request);
 }

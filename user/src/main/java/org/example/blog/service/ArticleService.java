@@ -28,4 +28,6 @@ public interface ArticleService extends IService<Article> {
     void updateArticleById(ArticleRequest request);
 
     PageResponse<ArticleResponse> pageMyArticle(PageRequest request);
+
+    void adminDeleteArticleById(Long id);
 }

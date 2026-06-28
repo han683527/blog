@@ -23,4 +23,6 @@ public class User {
     private LocalDateTime createTime;
 
     private String avatar;
+
+    private String role;
 }
