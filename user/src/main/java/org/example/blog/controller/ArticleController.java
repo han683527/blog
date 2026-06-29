@@ -47,9 +47,4 @@ public class ArticleController {
         articleService.updateArticleById(request);
         return Result.success("修改成功");
     }
-
-    @PostMapping("/list/myArticle")
-    public Result<PageResponse<ArticleResponse>> pageMyArticle(@RequestBody PageRequest request) {
-        return Result.success(articleService.pageMyArticle(request));
-    }
 }

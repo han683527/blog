@@ -27,7 +27,5 @@ public interface ArticleService extends IService<Article> {
     // 修改文章
     void updateArticleById(ArticleRequest request);
 
-    PageResponse<ArticleResponse> pageMyArticle(PageRequest request);
-
     void adminDeleteArticleById(Long id);
 }

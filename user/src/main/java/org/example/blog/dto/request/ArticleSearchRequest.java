@@ -11,4 +11,6 @@ public class ArticleSearchRequest extends PageRequest {
     private Long categoryId;
 
     private List<Long> tagIds;
+
+    private Long authorId;
 }

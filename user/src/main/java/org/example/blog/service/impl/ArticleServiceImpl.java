@@ -13,13 +13,11 @@ import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.*;
+import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.*;
-import org.example.blog.service.ArticleService;
-import org.example.blog.service.CollectService;
-import org.example.blog.service.LikeService;
-import org.example.blog.service.UserService;
+import org.example.blog.service.*;
 import org.example.blog.util.UserContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -35,59 +33,56 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
     private final StringRedisTemplate redisTemplate;
 
-    private final CommentMapper commentMapper;
-
-    private final ArticleTagMapper articleTagMapper;
-
-    private final TagMapper tagMapper;
-
-    private final CategoryMapper categoryMapper;
-
-    private final LikeService likeService;
-
-    private final CollectService collectService;
+    private final CommentService commentService;
 
     private final ArticleQueryService articleQueryService;
 
     private final UserService userService;
+
+    private final CategoryService categoryService;
+
+    private final TagService tagService;
+
+    private final ArticleTagService articleTagService;
 
     @Override
     public void createArticle(ArticleRequest request) {
         Long userId = UserContext.get();
         Article article = new Article();
         String title = request.getTitle();
-        if (request.getId() == null) {
-            article.setAuthorId(userId);
-            article.setTitle(title);
-            article.setContent(request.getContent());
-
-            // 判断分类是否存在
-            if (request.getCategoryId() != null) {
-                Category category = categoryMapper.selectById(request.getCategoryId());
-                if (category == null) {
-                    throw new NotFoundException("分类不存在");
-                }
-                article.setCategoryId(request.getCategoryId());
-            }
-
-            this.save(article);
+        if (request.getId() != null) {
+            throw new BadRequestException("创建文章时不能指定 ID");
         }
+
+        article.setAuthorId(userId);
+        article.setTitle(title);
+        article.setContent(request.getContent());
+
+        // 判断分类是否存在
+        if (request.getCategoryId() != null) {
+            Category category = categoryService.getById(request.getCategoryId());
+            if (category == null) {
+                throw new NotFoundException("分类不存在");
+            }
+            article.setCategoryId(request.getCategoryId());
+        }
+
+        this.save(article);
 
         // 先有数据才能插标签,否则会读到 null
         List<Long> tagIds = request.getTagIds();
 
         // 判断标签是否存在
         if (tagIds != null && !tagIds.isEmpty()) {
-            List<Tag> tags = tagMapper.selectByIds(tagIds);
+            List<Tag> tags = tagService.listByIds(tagIds);
             if (tags.size() != tagIds.size()) {
                 throw new NotFoundException("部分标签不存在");
             }
             for (Long tagId : tagIds) {
-
                 ArticleTag articleTag = new ArticleTag();
                 articleTag.setArticleId(article.getId());
                 articleTag.setTagId(tagId);
-                articleTagMapper.insert(articleTag);
+                articleTagService.save(articleTag);
             }
         }
 
@@ -115,9 +110,15 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 查找具有该标签的文章
         List<Long> tagIds = request.getTagIds();
         if (tagIds != null && !tagIds.isEmpty()) {
-            List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getTagId, tagIds));
+            List<ArticleTag> articleTags = articleTagService.list(new LambdaQueryWrapper<ArticleTag>().in(ArticleTag::getTagId, tagIds));
             List<Long> articleIds = articleTags.stream().map(ArticleTag::getArticleId).distinct().collect(Collectors.toList());
             wrapper.in(Article::getId, articleIds);
+        }
+
+        // 按 authorId 查自己的文章
+        Long authorId = request.getAuthorId();
+        if (authorId != null) {
+            wrapper.eq(Article::getAuthorId, authorId);
         }
 
         wrapper.orderByDesc(Article::getViewCount);
@@ -152,32 +153,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             }
             // 缓存命中后应将缓存 JSON 反序列化为 Article
             Article article = JSONUtil.toBean(cached, Article.class);
-            // 在查标签之前插入
-            article.setViewCount(article.getViewCount() == null ? 0 : article.getViewCount() + 1);
-            this.updateById(article);
-            redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(article), 10, TimeUnit.MINUTES);
 
-            // 查标签
-            List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId, id));
-            List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
-
-            // 查点赞数
-            Long articleLikeCount = likeService.getLikeCount(id);
-
-            // 查收藏数
-            Long articleCollectCount = collectService.getCollectCount(id);
-
-            // 查评论数
-            Long commentCount = commentMapper.selectCount(new LambdaQueryWrapper<Comment>().eq(Comment::getArticleId, id));
-
-            ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
-            response.setTags(tagIds);
-            response.setLikeCount(articleLikeCount);
-            response.setIsLike(likeService.isLiked(id, UserContext.get()));
-            response.setCollectCount(articleCollectCount);
-            response.setIsCollect(collectService.isCollect(id, UserContext.get()));
-            response.setCommentCount(commentCount);
-            return response;
+            return articleQueryService.buildArticleResponse(article, key);
         }
 
         // 2.缓存没有,查数据库
@@ -188,33 +165,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new NotFoundException("文章不存在");
         }
 
-        article.setViewCount(article.getViewCount() == null ? 0 : article.getViewCount() + 1);
-        this.updateById(article);
         // 3.写入缓存,并设置 TTL(定期过期,防止缓存没有被正常删除而导致脏数据)
         redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(article), 10, TimeUnit.MINUTES);
         log.info("写入缓存: {}", key);
 
-        // 查询标签
-        List<ArticleTag> articleTags = articleTagMapper.selectList(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId, article.getId()));
-        List<Long> tagIds = articleTags.stream().map(ArticleTag::getTagId).collect(Collectors.toList());
-
-        // 查点赞数
-        Long articleLikeCount = likeService.getLikeCount(id);
-
-        // 查收藏数
-        Long articleCollectCount = collectService.getCollectCount(id);
-
-        // 查评论数
-        Long commentCount = commentMapper.selectCount(new LambdaQueryWrapper<Comment>().eq(Comment::getArticleId, id));
-
-        ArticleResponse response = BeanUtil.toBean(article, ArticleResponse.class);
-        response.setTags(tagIds);
-        response.setLikeCount(articleLikeCount);
-        response.setIsLike(likeService.isLiked(id, UserContext.get()));
-        response.setCollectCount(articleCollectCount);
-        response.setIsCollect(collectService.isCollect(id, UserContext.get()));
-        response.setCommentCount(commentCount);
-        return response;
+        return articleQueryService.buildArticleResponse(article, key);
     }
 
     @Override
@@ -226,10 +181,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         //删文章后,相关的评论直接全部删除
         LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<Comment>();
         commentWrapper.eq(Comment::getArticleId, id);
-        commentMapper.delete(commentWrapper);
+        commentService.remove(commentWrapper);
         LambdaQueryWrapper<ArticleTag> tagWrapper = new LambdaQueryWrapper<>();
         tagWrapper.eq(ArticleTag::getArticleId, id);
-        articleTagMapper.delete(tagWrapper);
+        articleTagService.remove(tagWrapper);
         this.removeById(id);
 
         // 每次删除要删除缓存
@@ -248,7 +203,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         article.setTitle(request.getTitle());
         article.setContent(request.getContent());
         if (request.getCategoryId() != null) {
-            Category category = categoryMapper.selectById(request.getCategoryId());
+            Category category = categoryService.getById(request.getCategoryId());
             if (category == null) {
                 throw new NotFoundException("分类不存在");
             }
@@ -259,10 +214,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         LambdaQueryWrapper<ArticleTag> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ArticleTag::getArticleId, id);
         // 更新方式:先删除再插入
-        articleTagMapper.delete(wrapper);
+        articleTagService.remove(wrapper);
         List<Long> tagIds = request.getTagIds();
         if (tagIds != null && !tagIds.isEmpty()) {
-            List<Tag> tags = tagMapper.selectByIds(tagIds);
+            List<Tag> tags = tagService.listByIds(tagIds);
             if (tags.size() != tagIds.size()) {
                 throw new NotFoundException("部分标签不存在");
             }
@@ -270,31 +225,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                 ArticleTag articleTag = new ArticleTag();
                 articleTag.setArticleId(article.getId());
                 articleTag.setTagId(tagId);
-                articleTagMapper.insert(articleTag);
+                articleTagService.save(articleTag);
             }
         }
 
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
         log.info("删除缓存: article: {}", id);
-    }
-
-    @Override
-    public PageResponse<ArticleResponse> pageMyArticle(PageRequest request) {
-        Long userId = UserContext.get();
-        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(Article::getAuthorId, userId);
-        wrapper.orderByDesc(Article::getCreateTime);
-        Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
-
-        List<Long> articleIds = p.getRecords().stream().map(Article::getId).collect(Collectors.toList());
-        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
-        articleQueryService.enrich(list, articleIds, UserContext.get());
-
-        PageResponse<ArticleResponse> response = new PageResponse<>();
-        response.setTotal(p.getTotal());
-        response.setList(list);
-        return response;
     }
 
     @Override
@@ -305,11 +242,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         LambdaQueryWrapper<Comment> commentWrapper = new LambdaQueryWrapper<>();
         commentWrapper.eq(Comment::getArticleId, id);
-        commentMapper.delete(commentWrapper);
+        commentService.remove(commentWrapper);
 
         LambdaQueryWrapper<ArticleTag> tagWrapper = new LambdaQueryWrapper<>();
         tagWrapper.eq(ArticleTag::getArticleId, id);
-        articleTagMapper.delete(tagWrapper);
+        articleTagService.remove(tagWrapper);
 
         this.removeById(id);
         redisTemplate.delete("article:" + id);
