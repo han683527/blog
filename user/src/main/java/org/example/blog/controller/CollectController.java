@@ -1,7 +1,7 @@
 package org.example.blog.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.blog.dto.request.PageRequest;
+import org.example.blog.dto.request.ArticleSearchRequest;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.service.CollectService;
@@ -22,7 +22,7 @@ public class CollectController {
 
 
     @PostMapping("list")
-    public Result<PageResponse> pageMyCollect(@RequestBody PageRequest request) {
+    public Result<PageResponse> pageMyCollect(@RequestBody ArticleSearchRequest request) {
         return Result.success(collectService.pageMyCollect(request));
     }
 }

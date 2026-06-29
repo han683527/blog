@@ -5,7 +5,6 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
@@ -16,9 +15,10 @@ import org.example.blog.entity.*;
 import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
-import org.example.blog.mapper.*;
+import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.service.*;
 import org.example.blog.util.UserContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -28,28 +28,41 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
 
     private final StringRedisTemplate redisTemplate;
-
     private final CommentService commentService;
-
     private final ArticleQueryService articleQueryService;
-
     private final UserService userService;
-
     private final CategoryService categoryService;
-
     private final TagService tagService;
-
     private final ArticleTagService articleTagService;
+    private final LikeService likeService;
+
+    public ArticleServiceImpl(StringRedisTemplate redisTemplate,
+                              @Lazy CommentService commentService,
+                              ArticleTagService articleTagService,
+                              CategoryService categoryService,
+                              ArticleQueryService articleQueryService,
+                              UserService userService,
+                              TagService tagService,
+                              @Lazy LikeService likeService
+    ){
+        this.redisTemplate = redisTemplate;
+        this.commentService = commentService;
+        this.articleQueryService = articleQueryService;
+        this.userService = userService;
+        this.categoryService = categoryService;
+        this.articleTagService = articleTagService;
+        this.tagService = tagService;
+        this.likeService = likeService;
+    }
 
     @Override
     public void createArticle(ArticleRequest request) {
+        String title = request.getTitle();
         Long userId = UserContext.get();
         Article article = new Article();
-        String title = request.getTitle();
         if (request.getId() != null) {
             throw new BadRequestException("创建文章时不能指定 ID");
         }
@@ -115,7 +128,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             wrapper.in(Article::getId, articleIds);
         }
 
-        // 按 authorId 查自己的文章
+        // 按 authorId 查文章
         Long authorId = request.getAuthorId();
         if (authorId != null) {
             wrapper.eq(Article::getAuthorId, authorId);

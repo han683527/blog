@@ -20,7 +20,11 @@ public interface CommentService extends IService<Comment> {
 
     void updateCommentById(CommentRequest request);
 
+    //
     PageResponse<CommentResponse> pageComment(CommentSearchRequest request);
 
+    //
     void adminDeleteCommentById(Long id);
+
+    // TODO 管理员的 修改 分页查询
 }

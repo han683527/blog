@@ -5,13 +5,13 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.CommentSearchRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Comment;
+import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.CommentMapper;
@@ -20,6 +20,7 @@ import org.example.blog.service.CommentService;
 import org.example.blog.service.NotificationService;
 import org.example.blog.service.UserService;
 import org.example.blog.util.UserContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -29,31 +30,39 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     private final StringRedisTemplate redisTemplate;
-
+    private final NotificationService notificationService;
+    private final UserService userService;
     private final ArticleService articleService;
 
-    private final NotificationService notificationService;
-
-    private final UserService userService;
+    public CommentServiceImpl(StringRedisTemplate redisTemplate,
+                              NotificationService notificationService,
+                              UserService userService,
+                              @Lazy ArticleService articleService) {
+        this.redisTemplate = redisTemplate;
+        this.notificationService = notificationService;
+        this.userService = userService;
+        this.articleService = articleService;
+    }
 
     @Override
     public void createCommentByArticleId(CommentRequest request) {
         Long articleId = request.getArticleId();
-        if (request.getId() == null) {
-            if (articleService.getArticleById(articleId) == null) {
-                throw new NotFoundException("文章不存在");
-            }
-            Comment comment = new Comment();
-            comment.setContent(request.getContent());
-            comment.setArticleId(articleId);
-            comment.setUserId(UserContext.get());
-            this.save(comment);
-            notificationService.createNotification(UserContext.get(),articleId,"COMMENT");
+        if (request.getId() != null) {
+            throw new BadRequestException("创建评论时不能指定 ID");
         }
+
+        if (articleService.getById(articleId) == null) {
+            throw new NotFoundException("文章不存在");
+        }
+        Comment comment = new Comment();
+        comment.setContent(request.getContent());
+        comment.setArticleId(articleId);
+        comment.setUserId(UserContext.get());
+        this.save(comment);
+        notificationService.createNotification(UserContext.get(),articleId,"COMMENT");
     }
 
     public Comment getCommentById(Long id) {
@@ -104,6 +113,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         } else if (comment.getUserId() != UserContext.get()) {
             throw new ForbiddenException("不能修改别人的评论");
         }
+
+        if (request.getArticleId() != null && !request.getArticleId().equals(comment.getArticleId())) {
+            throw new BadRequestException("文章 ID 与评论不匹配");
+        }
+
         comment.setContent(request.getContent());
         this.updateById(comment);
 
@@ -122,9 +136,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             wrapper.eq(Comment::getArticleId, articleId);
         }
 
-        // 查找用户自己的评论
+        // 按 userId 查找用户的评论
         Long userId = request.getUserId();
-        if (userId != null && userId.equals(UserContext.get())) {
+        if (userId != null) {
             wrapper.eq(Comment::getUserId, userId);
         }
 

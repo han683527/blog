@@ -12,6 +12,8 @@ public interface UserService extends IService<User> {
 
     String uploadAvatar(MultipartFile file);
 
+    // TODO 用户端 查看个人信息 查看他人个人信息
+
     void checkAdmin();
 
     void adminDeleteUserById(Long id);

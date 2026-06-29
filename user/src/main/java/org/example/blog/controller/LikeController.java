@@ -1,7 +1,7 @@
 package org.example.blog.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.blog.dto.request.PageRequest;
+import org.example.blog.dto.request.ArticleSearchRequest;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.service.LikeService;
@@ -20,7 +20,7 @@ public class LikeController {
     }
 
     @PostMapping("list")
-    public Result<PageResponse> pageMyLike(@RequestBody PageRequest request) {
+    public Result<PageResponse> pageMyLike(@RequestBody ArticleSearchRequest request) {
         return Result.success(likeService.pageMyLike(request));
     }
 }

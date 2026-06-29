@@ -4,28 +4,31 @@ import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
 import org.example.blog.entity.Notification;
-import org.example.blog.mapper.ArticleMapper;
 import org.example.blog.mapper.NotificationMapper;
+import org.example.blog.service.ArticleService;
 import org.example.blog.service.NotificationService;
 import org.example.blog.util.UserContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Notification> implements NotificationService {
 
-    private final ArticleMapper articleMapper;
+    private final ArticleService articleService;
+
+    public NotificationServiceImpl(@Lazy ArticleService articleService) {
+        this.articleService = articleService;
+    }
 
     @Override
     public void createNotification(Long actorId, Long articleId, String type) {
-        Article article = articleMapper.selectById(articleId);
+        Article article = articleService.getById(articleId);
         if(article.getAuthorId().equals(actorId)){ // 自己操作自己的不进行通知
             return;
         }
