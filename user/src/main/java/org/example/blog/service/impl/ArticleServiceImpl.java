@@ -8,7 +8,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
-import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.*;
@@ -66,7 +65,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                               UserService userService,
                               TagService tagService,
                               @Lazy LikeService likeService
-    ){
+    ) {
         this.redisTemplate = redisTemplate;
         this.commentService = commentService;
         this.articleQueryService = articleQueryService;
@@ -281,6 +280,65 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         this.removeById(id);
         redisTemplate.delete("article:" + id);
-        log.info("管理员删除文章: {}",id);
+        log.info("管理员删除文章: {}", id);
+    }
+
+    @Override
+    public void adminUpdateArticle(ArticleRequest request) {
+        userService.checkAdmin();
+        // 获取文章 id
+        Long id = request.getId();
+        if (id == null) {
+            throw new NotFoundException("文章不存在");
+        }
+
+        Article article = new Article();
+        article.setId(id);
+        article.setTitle(request.getTitle());
+
+        article.setContent(request.getContent());
+        if (request.getCategoryId() != null) {
+            Category category = categoryService.getById(request.getCategoryId());
+            if (category == null) {
+                throw new NotFoundException("分类不存在");
+            }
+            article.setCategoryId(request.getCategoryId());
+        }
+        this.updateById(article);
+
+        LambdaQueryWrapper<ArticleTag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ArticleTag::getArticleId, id);
+        // 更新方式:先删除再插入
+
+        articleTagService.remove(wrapper);
+        List<Long> tagIds = request.getTagIds();
+        if (tagIds != null && !tagIds.isEmpty()) {
+            List<Tag> tags = tagService.listByIds(tagIds);
+            if (tags.size() != tagIds.size()) {
+                throw new NotFoundException("部分标签不存在");
+            }
+            for (Long tagId : tagIds) {
+                ArticleTag articleTag = new ArticleTag();
+                articleTag.setArticleId(article.getId());
+                articleTag.setTagId(tagId);
+                articleTagService.save(articleTag);
+            }
+        }
+
+        // 每次更新要删除缓存
+        redisTemplate.delete("article:" + id);
+        log.info("删除缓存: article: {}", id);
+    }
+
+    @Override
+    public PageResponse<ArticleResponse> adminPageArticle(ArticleSearchRequest request) {
+        userService.checkAdmin();
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        Page<Article> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
+        List<ArticleResponse> list = BeanUtil.copyToList(p.getRecords(), ArticleResponse.class);
+        PageResponse<ArticleResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
     }
 }

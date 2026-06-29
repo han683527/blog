@@ -4,13 +4,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.CommentSearchRequest;
-import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
-import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -42,11 +40,5 @@ public class CommentController {
     public Result<String> deleteCommentById(@PathVariable Long id){
         commentService.deleteCommentById(id);
         return Result.success("删除成功");
-    }
-
-    @PutMapping
-    public Result<String> updateCommentById(@Valid @RequestBody CommentRequest request){
-        commentService.updateCommentById(request);
-        return Result.success("修改成功");
     }
 }

@@ -103,28 +103,6 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         log.info("删除缓存: comment: {}", comment);
     }
 
-    //
-    @Override
-    public void updateCommentById(CommentRequest request) {
-        Long id = request.getId();
-        Comment comment = this.getById(id);
-        if (comment == null) {
-            throw new NotFoundException("评论不存在");
-        } else if (comment.getUserId() != UserContext.get()) {
-            throw new ForbiddenException("不能修改别人的评论");
-        }
-
-        if (request.getArticleId() != null && !request.getArticleId().equals(comment.getArticleId())) {
-            throw new BadRequestException("文章 ID 与评论不匹配");
-        }
-
-        comment.setContent(request.getContent());
-        this.updateById(comment);
-
-        redisTemplate.delete("comment:" + id);
-        log.info("删除缓存: comment: {}", comment);
-    }
-
     // 查询文章/用户自己的评论
     @Override
     public PageResponse<CommentResponse> pageComment(CommentSearchRequest request) {
@@ -156,8 +134,21 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         Comment comment = this.getOptById(id)
                 .orElseThrow(() -> new NotFoundException("评论不存在"));
 
+        // 管理员可以对所有评论进行删除,不用关注评论的归属
         this.removeById(comment.getId());
         redisTemplate.delete("comment:" + id);
         log.info("管理员删除评论: {}",id);
+    }
+
+    @Override
+    public PageResponse<CommentResponse> adminPageComment(CommentSearchRequest request) {
+        userService.checkAdmin();
+        LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
+        Page<Comment> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
+        List<CommentResponse> list = BeanUtil.copyToList(p.getRecords(), CommentResponse.class);
+        PageResponse<CommentResponse> response = new PageResponse<>();
+        response.setTotal(p.getTotal());
+        response.setList(list);
+        return response;
     }
 }

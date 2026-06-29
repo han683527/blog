@@ -3,11 +3,11 @@ package org.example.blog.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.entity.*;
 import org.example.blog.service.*;
 import org.example.blog.util.UserContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class ArticleQueryService {
 
     private final StringRedisTemplate redisTemplate;
@@ -27,6 +26,20 @@ public class ArticleQueryService {
     private final CollectService collectService;
     private final ArticleService articleService;
     private final CommentService commentService;
+
+    public ArticleQueryService(StringRedisTemplate redisTemplate,
+                               ArticleTagService articleTagService,
+                               LikeService likeService,
+                               CollectService collectService,
+                               CommentService commentService,
+                               @Lazy ArticleService articleService) {
+        this.redisTemplate = redisTemplate;
+        this.articleTagService = articleTagService;
+        this.likeService = likeService;
+        this.collectService = collectService;
+        this.articleService = articleService;
+        this.commentService = commentService;
+    }
 
     public void enrich(List<ArticleResponse> list, List<Long> articleIds, Long userId) {
         if (articleIds == null || articleIds.isEmpty()) return;

@@ -2,12 +2,10 @@ package org.example.blog.controller.admin;
 
 
 import lombok.RequiredArgsConstructor;
-import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.CommentSearchRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
-import org.example.blog.entity.Comment;
 import org.example.blog.service.CommentService;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,7 +23,7 @@ public class AdminCommentController {
     }
 
     @PostMapping("/list")
-    public Result<PageResponse<CommentResponse>> pageComment(@RequestBody CommentSearchRequest request){
-        return Result.success(commentService.pageComment(request));
+    public Result<PageResponse<CommentResponse>> adminPageComment(@RequestBody CommentSearchRequest request){
+        return Result.success(commentService.adminPageComment(request));
     }
 }
