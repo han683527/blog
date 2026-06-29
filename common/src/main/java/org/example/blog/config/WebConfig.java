@@ -20,10 +20,10 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry){
         registry.addInterceptor(tokenInterceptor)
                 .addPathPatterns("/**")                 //拦截所有请求
-                .excludePathPatterns("/user/register",  //放行特定请求
-                        "/user/login",
-                        "/user/code",
-                        "/user/refresh",
+                .excludePathPatterns("/auth/register",  //放行特定请求
+                        "/auth/login",
+                        "/auth/code",
+                        "/auth/refresh",
                         "/upload/**",
                         "/swagger-ui/**",
                         "/v3/api-docs/**");
