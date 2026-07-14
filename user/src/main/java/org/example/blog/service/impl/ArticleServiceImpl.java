@@ -57,24 +57,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         this.likeService = likeService;
     }
 
-    public ArticleServiceImpl(StringRedisTemplate redisTemplate,
-                              @Lazy CommentService commentService,
-                              ArticleTagService articleTagService,
-                              CategoryService categoryService,
-                              ArticleQueryService articleQueryService,
-                              UserService userService,
-                              TagService tagService,
-                              @Lazy LikeService likeService
-    ) {
-        this.redisTemplate = redisTemplate;
-        this.commentService = commentService;
-        this.articleQueryService = articleQueryService;
-        this.userService = userService;
-        this.categoryService = categoryService;
-        this.articleTagService = articleTagService;
-        this.tagService = tagService;
-    }
-
     @Override
     public void createArticle(ArticleRequest request) {
         String title = request.getTitle();

@@ -33,3 +33,9 @@ build/
 .vscode/
 
 user/flyway.conf
+
+note
+
+uploads
+
+/CLAUDE.md
