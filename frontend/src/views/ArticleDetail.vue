@@ -44,6 +44,8 @@ import { useRoute } from "vue-router"
 import { getArticle } from "@/api/articles"
 import { getComments, addComment} from "@/api/comment"
 import { ElMessage} from "element-plus"
+import { toggleLike } from "@/api/like"
+import { toggleCollect } from "@/api/collect"
 
 const route = useRoute()
 const article = ref({})
@@ -62,15 +64,46 @@ onMounted(async () => {
 })
 
 async function handleLike() {
-  // TODO 调用点赞接口
+  try {
+    await toggleLike(route.params.id)
+    article.value.isLike = !article.value.isLike
+    article.value.likeCount += article.value.isLike ? 1: -1
+    // // 重新获取文章详情,刷新点赞状态和数量
+    // const res = await getArticle(route.params.id)
+    // article.value = res.data.data
+  } catch (e) {
+    ElMessage.error(e.message || '点赞失败')
+  }
 }
 
 async function handleCollect() {
-  // TODO 调用收藏接口
+  try {
+    await toggleCollect(route.params.id)
+    article.value.isCollect = !article.value.isCollect
+    article.value.collectCount += article.value.isCollect ? 1: -1
+    // // 重新获取收藏详情
+    // const res = await getArticle(route.params.id)
+    // article.value = res.data.data
+  } catch (e) {
+    ElMessage.error(e.message || '收藏失败')
+  }
 }
 
 async function handleAddComment() {
-  // TODO 调用发表评论接口
+  if (!commentText.value) {
+    ElMessage.warning('请输入评论内容')
+    return
+  }
+  try {
+    await addComment({ articleId: Number(route.params.id), content: commentText.value })
+    ElMessage.success('评论成功')
+    commentText.value = ''
+    // 重新加载评论列表
+    const res = await getComments({ articleId: route.params.id, page: 1,size: 10 })
+    comments.value = res.data.data.list
+  } catch (e) {
+    ElMessage.error(e.message || '评论失败')
+  }
 }
 </script>
 

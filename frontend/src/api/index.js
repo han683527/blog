@@ -6,6 +6,18 @@ const request = axios.create({
     timeout: 15000,
 })
 
+request.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('accessToken')
+        if (token) {
+            config.headers.Authorization = 'Bearer ' + token;
+        }
+        return config
+    },
+    (error) => {
+        return Promise.reject(error)
+    })
+
 request.interceptors.response.use(
     (response) => {
         const res = response.data;
