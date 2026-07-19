@@ -43,6 +43,7 @@
             <div v-else>
               <div v-for="article in articles" :key="article.id" class="item">
                 <router-link :to="'/article/' + article.id" class="title">{{ article.title }}</router-link>
+                <el-button type="danger" @click="handleDeleteArticle(article.id)">删除</el-button>
                 <div class="meta">
                   <span>{{ article.createTime }}</span>
                   <span>评论 {{ article.commentCount }}</span>
@@ -62,6 +63,7 @@
             <div v-else>
               <div v-for="comment in comments" :key="comment.id" class="item">
                 <router-link :to="'/article/' + comment.articleId" class="title">{{ comment.content }}</router-link>
+                <el-button type="danger" @click="handleDeleteComment(comment.id)">删除</el-button>
                 <div class="meta">
                   <span>{{ comment.createTime }}</span>
                 </div>
@@ -120,11 +122,11 @@
 
 import {ref, onMounted, watch} from 'vue'
 import {getUser, updateProfile, updateAvatar} from '@/api/user'
-import {getArticles} from '@/api/articles'
-import {getComments} from "@/api/comment";
+import {getArticles, deleteArticle} from '@/api/articles'
+import {getComments, deleteComment} from "@/api/comment";
 import {getMyLikes} from '@/api/like'
 import {getMyCollects} from '@/api/collect'
-import {ElMessage} from 'element-plus'
+import {ElMessage, ElMessageBox} from 'element-plus'
 
 const form = ref({})
 const user = ref({})
@@ -248,6 +250,24 @@ watch(activeTab, (tab) => {
   if (tab === 'likes' && likes.value.length === 0) loadMyLikes()
   if (tab === 'collects' && collects.value.length === 0) loadMyCollects()
 })
+
+async function handleDeleteArticle(id) {
+  await ElMessageBox.confirm('确定删除这篇文章吗?','提示')
+  await deleteArticle(id)
+  ElMessage.success('删除成功')
+  // 删除缓存
+  comments.value = []
+  likes.value = []
+  collects.value = []
+  loadMyArticles()
+}
+
+async function handleDeleteComment(id) {
+  await ElMessageBox.confirm('确定要删除这条评论吗?','提示')
+  await deleteComment(id)
+  ElMessage.success('删除成功')
+  loadMyComments()
+}
 </script>
 
 <style scoped>

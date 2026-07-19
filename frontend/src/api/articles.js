@@ -11,3 +11,7 @@ export function getArticle(id) {
 export function createArticle(data) {
     return request.post('/article', data)
 }
+
+export function deleteArticle(id) {
+    return request.delete('/article/' + id)
+}

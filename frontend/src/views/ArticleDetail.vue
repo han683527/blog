@@ -27,6 +27,7 @@
         <div v-for="c in comments" :key="c.id" class="content-item">
           <div class="comment-body">{{ c.content }}</div>
           <div class="comment-time">{{ c.createTime }}</div>
+          <el-button v-if="user.id === article.authorId" type="danger" size="small" @click="handleDeleteComment(c.id)">删除</el-button>
         </div>
       </div>
       <!-- 发表评论 -->
@@ -39,26 +40,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
-import { useRoute } from "vue-router"
-import { getArticle } from "@/api/articles"
-import { getComments, addComment} from "@/api/comment"
-import { ElMessage} from "element-plus"
-import { toggleLike } from "@/api/like"
-import { toggleCollect } from "@/api/collect"
+import {ref, onMounted} from "vue"
+import {useRoute, useRouter} from "vue-router"
+import {getUser} from "@/api/user"
+import {getArticle} from "@/api/articles"
+import {getComments, addComment, deleteComment} from "@/api/comment"
+import {ElMessage, ElMessageBox} from "element-plus"
+import {toggleLike} from "@/api/like"
+import {toggleCollect} from "@/api/collect"
 
 const route = useRoute()
+const router = useRouter()
+const user = ref(null)
 const article = ref({})
 const loading = ref(true)
 const comments = ref([])
 const commentText = ref('')
 
 onMounted(async () => {
-  // 1. 获取文章详情
+  // 获取文章详情
   const res = await getArticle(route.params.id)
   article.value = res.data.data
-  // 2. 获取评论列表
-  const commentRes = await getComments({ articleId: route.params.id, page: 1, size: 10 })
+
+  // 获取当前用户
+  if (localStorage.getItem('accessToken')) {
+    const userRes = await getUser()
+    user.value = userRes.data.data
+  }
+
+  // 获取评论列表
+  const commentRes = await getComments({articleId: route.params.id, page: 1, size: 10})
   comments.value = commentRes.data.data.list
   loading.value = false
 })
@@ -67,7 +78,7 @@ async function handleLike() {
   try {
     await toggleLike(route.params.id)
     article.value.isLike = !article.value.isLike
-    article.value.likeCount += article.value.isLike ? 1: -1
+    article.value.likeCount += article.value.isLike ? 1 : -1
     // // 重新获取文章详情,刷新点赞状态和数量
     // const res = await getArticle(route.params.id)
     // article.value = res.data.data
@@ -80,7 +91,7 @@ async function handleCollect() {
   try {
     await toggleCollect(route.params.id)
     article.value.isCollect = !article.value.isCollect
-    article.value.collectCount += article.value.isCollect ? 1: -1
+    article.value.collectCount += article.value.isCollect ? 1 : -1
     // // 重新获取收藏详情
     // const res = await getArticle(route.params.id)
     // article.value = res.data.data
@@ -95,15 +106,22 @@ async function handleAddComment() {
     return
   }
   try {
-    await addComment({ articleId: Number(route.params.id), content: commentText.value })
+    await addComment({articleId: Number(route.params.id), content: commentText.value})
     ElMessage.success('评论成功')
     commentText.value = ''
     // 重新加载评论列表
-    const res = await getComments({ articleId: route.params.id, page: 1,size: 10 })
+    const res = await getComments({articleId: route.params.id, page: 1, size: 10})
     comments.value = res.data.data.list
   } catch (e) {
     ElMessage.error(e.message || '评论失败')
   }
+}
+
+async function handleDeleteComment(id) {
+  await ElMessageBox.confirm('确定要删除这条评论吗?','提示')
+  await deleteComment(id)
+  const res = await getComments({articleId: route.params.id, page: 1, size: 10})
+  comments.value = res.data.data.list
 }
 </script>
 
@@ -113,32 +131,40 @@ async function handleAddComment() {
   margin: 0 auto;
   padding: 20px;
 }
+
 .meta {
   color: #666;
   margin: 10px 0;
 }
-.meta span{
+
+.meta span {
   margin-right: 16px;
 }
+
 .content {
   margin: 20px 0;
   line-height: 1.8;
 }
+
 .actions {
   margin: 20px 0;
 }
+
 .comments {
   margin-top: 40px;
 }
+
 .content-item {
   padding: 12px 0;
   border-bottom: 1px solid #eee;
 }
+
 .comment-time {
   color: #999;
   font-size: 12px;
   margin-top: 4px;
 }
+
 .add-comment {
   display: flex;
   gap: 12px;

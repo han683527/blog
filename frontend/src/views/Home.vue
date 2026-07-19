@@ -1,7 +1,10 @@
 <template>
   <div class="home">
     <h1>文章列表</h1>
-
+    <div class="search">
+      <el-input v-model="keyword" placeholder="搜点什么..." clearable @keyup.enter="handleSearch" style="width: 300px"/>
+      <el-button type="primary" @click="handleSearch">搜索</el-button>
+    </div>
     <!-- 分类筛选 -->
     <div class="categories">
       <el-button v-for="c in categories" :key="c.id" :type="selectCategory === c.id ? 'primary' : 'default'" size="small" @click="filterByCategory(c.id)">
@@ -57,6 +60,7 @@ const tags = ref([])
 const selectTag = ref([])
 const currentPage = ref(1)
 const total = ref(0)
+const keyword = ref('')
 
 onMounted(async () => {
   try {
@@ -84,6 +88,7 @@ async function onPageChange(page) {
 
 async function loadArticles() {
   const params = { page: currentPage.value, size: 10 }
+  if(keyword.value) params.keyword = keyword.value
   if (selectCategory.value) {
     params.categoryId = selectCategory.value
   }
@@ -129,9 +134,17 @@ async function filterByTag(id) {
   loadArticles().finally(async () => { loading.value = false })
 }
 
+function handleSearch() {
+  currentPage.value = 1
+  loading.value = true
+  loadArticles().finally(() => { loading.value = false })
+}
 </script>
 
 <style scoped>
+.search{
+  padding: 20px;
+}
 .home {
   max-width: 800px;
   margin: 0 auto;
