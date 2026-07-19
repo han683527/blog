@@ -82,6 +82,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return url;
     }
 
+    public User getUser() {
+        return this.getById(UserContext.get());
+    }
+
     @Override
     public void checkAdmin(){
         User user = this.getById(UserContext.get());

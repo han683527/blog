@@ -8,6 +8,7 @@ import org.example.blog.dto.request.RegisterRequest;
 import org.example.blog.dto.request.UpdateUserRequest;
 import org.example.blog.dto.response.LoginResponse;
 import org.example.blog.dto.response.Result;
+import org.example.blog.entity.User;
 import org.example.blog.service.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -28,5 +29,10 @@ public class UserController {
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadAvatar(MultipartFile file){
         return Result.success(userService.uploadAvatar(file));
+    }
+
+    @GetMapping("/info")
+    public Result<User> getUser() {
+        return Result.success(userService.getUser());
     }
 }

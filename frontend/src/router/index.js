@@ -27,6 +27,20 @@ const routes = [
         path: '/article/:id',
         name: 'ArticleDetail',
         component: () => import('@/views/ArticleDetail.vue')
+    },
+
+    // 用户个人中心
+    {
+        path: '/profile',
+        name: 'Profile',
+        component: () => import('@/views/Profile.vue')
+    },
+
+    // 写文章
+    {
+      path: '/create',
+      name: 'Create',
+      component: () => import('@/views/ArticleCreate.vue')
     }
 ]
 
