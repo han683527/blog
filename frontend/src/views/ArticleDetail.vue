@@ -30,9 +30,10 @@
       <!-- 评论列表 -->
       <div class="comments">
         <h3>评论 ({{ article.commentCount }})</h3>
-        <div v-for="c in comments" :key="c.userId" class="content-item">
+        <!-- 使用 userId 而不是 id(否则会导致跳转错误)-->
+        <div v-for="c in comments" :key="c.id" class="content-item">
           <div class="comment-user">
-            <router-link :to="'/user/' + c.id">
+            <router-link :to="'/user/' + c.userId">
               <img :src="c.userAvatar" class="comment-avatar" v-if="c.userAvatar"/>
               <span>{{ c.userName }}</span>
             </router-link>
