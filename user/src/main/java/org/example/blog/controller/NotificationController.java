@@ -2,9 +2,9 @@ package org.example.blog.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.PageRequest;
+import org.example.blog.dto.response.NotificationResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
-import org.example.blog.entity.Notification;
 import org.example.blog.service.NotificationService;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +16,7 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @PostMapping("/list")
-    public Result<PageResponse<Notification>> pageNotification(@RequestBody PageRequest request) {
+    public Result<PageResponse<NotificationResponse>> pageNotification(@RequestBody PageRequest request) {
         return Result.success(notificationService.pageNotifications(request));
     }
 

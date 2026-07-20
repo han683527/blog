@@ -34,11 +34,16 @@ const articles = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
-  const useRes = await getUserById(route.params.id)
-  user.value = useRes.data.data
-  const artRes = await getArticles({authorId: route.params.id, page: 1,size: 10 })
-  articles.value = artRes.data.data.list
-  loading.value = false
+  try{
+    const useRes = await getUserById(route.params.id)
+    user.value = useRes.data.data
+    const artRes = await getArticles({authorId: route.params.id, page: 1,size: 10 })
+    articles.value = artRes.data.data.list
+  } catch (e) {
+    console.error('加载失败', e)
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 

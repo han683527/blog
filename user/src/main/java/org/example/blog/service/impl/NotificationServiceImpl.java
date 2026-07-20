@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.example.blog.dto.request.PageRequest;
+import org.example.blog.dto.response.NotificationResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
 import org.example.blog.entity.Notification;
+import org.example.blog.entity.User;
 import org.example.blog.mapper.NotificationMapper;
 import org.example.blog.service.ArticleService;
 import org.example.blog.service.NotificationService;
+import org.example.blog.service.UserService;
 import org.example.blog.util.UserContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -21,15 +24,18 @@ import java.util.List;
 public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Notification> implements NotificationService {
 
     private final ArticleService articleService;
+    private final UserService userService;
 
-    public NotificationServiceImpl(@Lazy ArticleService articleService) {
+    public NotificationServiceImpl(@Lazy ArticleService articleService,
+                                   UserService userService) {
         this.articleService = articleService;
+        this.userService = userService;
     }
 
     @Override
     public void createNotification(Long actorId, Long articleId, String type) {
         Article article = articleService.getById(articleId);
-        if(article.getAuthorId().equals(actorId)){ // 自己操作自己的不进行通知
+        if (article.getAuthorId().equals(actorId)) { // 自己操作自己的不进行通知
             return;
         }
 
@@ -42,13 +48,25 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
     }
 
     @Override
-    public PageResponse<Notification> pageNotifications(PageRequest pageRequest) {
+    public PageResponse<NotificationResponse> pageNotifications(PageRequest pageRequest) {
         Long userId = UserContext.get();
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getUserId,userId);
-        Page<Notification> p = this.page(new Page<>(pageRequest.getPage(), pageRequest.getSize()),wrapper);
-        List<Notification> list = BeanUtil.copyToList(p.getRecords(), Notification.class);
-        PageResponse<Notification> response = new PageResponse<>();
+        wrapper.eq(Notification::getUserId, userId);
+        Page<Notification> p = this.page(new Page<>(pageRequest.getPage(), pageRequest.getSize()), wrapper);
+
+        // 获取操作人(actor)以及操作对象(article)
+        List<NotificationResponse> list = BeanUtil.copyToList(p.getRecords(), NotificationResponse.class);
+        for (NotificationResponse notificationResponse : list) {
+            User actor = userService.getById(notificationResponse.getActorId());
+            if(actor!=null){
+                notificationResponse.setActorNickname(actor.getNickname());
+            }
+            Article article = articleService.getById(notificationResponse.getArticleId());
+            if(article!=null){
+                notificationResponse.setArticleTitle(article.getTitle());
+            }
+        }
+        PageResponse<NotificationResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
         response.setList(list);
         return response;
@@ -69,12 +87,12 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
                 .eq(Notification::isReadFlag, false);
         Notification notification = new Notification();
         notification.setReadFlag(true);
-        this.update(notification,wrapper);
+        this.update(notification, wrapper);
     }
 
     public Long getUnreadCount() {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getUserId,UserContext.get())
+        wrapper.eq(Notification::getUserId, UserContext.get())
                 .eq(Notification::isReadFlag, false);
         return this.count(wrapper);
     }
