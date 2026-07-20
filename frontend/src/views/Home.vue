@@ -25,6 +25,11 @@
           <router-link :to="'/article/' +article.id">{{ article.title }}</router-link>
         </h2>
         <p>{{ article.content }}</p>
+        <div class="meta">
+          <span @click="$router.push('/user/' + article.authorId)" style="cursor: pointer;color:#409eff">
+            {{ article.authorName }}
+          </span>
+        </div>
         <div>
           <span>阅读量: {{ article.viewCount }}</span>
           <span>点赞: {{ article.likeCount }}</span>

@@ -26,12 +26,14 @@ public class ArticleQueryService {
     private final CollectService collectService;
     private final ArticleService articleService;
     private final CommentService commentService;
+    private final UserService userService;
 
     public ArticleQueryService(StringRedisTemplate redisTemplate,
                                ArticleTagService articleTagService,
                                LikeService likeService,
                                CollectService collectService,
                                CommentService commentService,
+                               UserService userService,
                                @Lazy ArticleService articleService) {
         this.redisTemplate = redisTemplate;
         this.articleTagService = articleTagService;
@@ -39,6 +41,7 @@ public class ArticleQueryService {
         this.collectService = collectService;
         this.articleService = articleService;
         this.commentService = commentService;
+        this.userService = userService;
     }
 
     public void enrich(List<ArticleResponse> list, List<Long> articleIds, Long userId) {
@@ -76,9 +79,14 @@ public class ArticleQueryService {
                                 .in(ArticleCollect::getArticleId, articleIds))
                 .stream().map(ArticleCollect::getArticleId).collect(Collectors.toSet());
 
-        // 返回 标签(多个) | 点赞数 | 点赞状态(是否点赞) | 收藏数 | 收藏状态 | 评论数
+        // 返回 标签(多个) | 用户信息 | 点赞数 | 点赞状态(是否点赞) | 收藏数 | 收藏状态 | 评论数
         for (ArticleResponse response : list) {
             response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
+            User author = userService.getById(response.getAuthorId());
+            if (author !=null) {
+                response.setAuthorName(author.getNickname());
+                response.setAuthorAvatar(author.getAvatar());
+            }
             response.setLikeCount(likeCountMap.getOrDefault(response.getId(), 0L));
             response.setIsLike(likedIds.contains(response.getId()));
             response.setCollectCount(collectCountMap.getOrDefault(response.getId(), 0L));

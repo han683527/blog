@@ -41,6 +41,13 @@ const routes = [
       path: '/create',
       name: 'Create',
       component: () => import('@/views/ArticleCreate.vue')
+    },
+
+    // 公开用户信息
+    {
+        path: '/user/:id',
+        name: 'UserPublic',
+        component: () => import('@/views/UserPublic.vue')
     }
 ]
 

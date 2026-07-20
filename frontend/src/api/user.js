@@ -15,3 +15,7 @@ export function updateAvatar(file) {
         headers: { 'Content-Type' : 'multipart/form-data' },
     })
 }
+
+export function getUserById(id) {
+    return request.get('/user/public/' + id)
+}

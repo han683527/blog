@@ -11,6 +11,7 @@ import org.example.blog.dto.request.CommentSearchRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Comment;
+import org.example.blog.entity.User;
 import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
@@ -62,7 +63,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setArticleId(articleId);
         comment.setUserId(UserContext.get());
         this.save(comment);
-        notificationService.createNotification(UserContext.get(),articleId,"COMMENT");
+        notificationService.createNotification(UserContext.get(), articleId, "COMMENT");
     }
 
     public Comment getCommentById(Long id) {
@@ -122,6 +123,13 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
         Page<Comment> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
         List<CommentResponse> list = BeanUtil.copyToList(p.getRecords(), CommentResponse.class);
+        for (CommentResponse commentResponse : list) {
+            User user = userService.getById(commentResponse.getUserId());
+            if (user != null) {
+                commentResponse.setUserName(user.getNickname());
+                commentResponse.setUserAvatar(user.getAvatar());
+            }
+        }
         PageResponse<CommentResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
         response.setList(list);
@@ -137,7 +145,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         // 管理员可以对所有评论进行删除,不用关注评论的归属
         this.removeById(comment.getId());
         redisTemplate.delete("comment:" + id);
-        log.info("管理员删除评论: {}",id);
+        log.info("管理员删除评论: {}", id);
     }
 
     @Override

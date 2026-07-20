@@ -4,6 +4,12 @@
     <div v-else>
       <!-- 标题 -->
       <h1>{{ article.title }}</h1>
+      <div class="author-info">
+        <router-link :to="'/user/' + article.authorId" class="author-link">
+          <img :src="article.authorAvatar" class="author-avatar" v-if="article.authorAvatar"/>
+          <span>{{ article.authorName }}</span>
+        </router-link>
+      </div>
       <!-- 具体信息 -->
       <div class="meta">
         <span>阅读 {{ article.viewCount }}</span>
@@ -24,10 +30,18 @@
       <!-- 评论列表 -->
       <div class="comments">
         <h3>评论 ({{ article.commentCount }})</h3>
-        <div v-for="c in comments" :key="c.id" class="content-item">
+        <div v-for="c in comments" :key="c.userId" class="content-item">
+          <div class="comment-user">
+            <router-link :to="'/user/' + c.id">
+              <img :src="c.userAvatar" class="comment-avatar" v-if="c.userAvatar"/>
+              <span>{{ c.userName }}</span>
+            </router-link>
+          </div>
           <div class="comment-body">{{ c.content }}</div>
           <div class="comment-time">{{ c.createTime }}</div>
-          <el-button v-if="user.id === article.authorId" type="danger" size="small" @click="handleDeleteComment(c.id)">删除</el-button>
+          <el-button v-if="user.id === article.authorId" type="danger" size="small" @click="handleDeleteComment(c.id)">
+            删除
+          </el-button>
         </div>
       </div>
       <!-- 发表评论 -->
@@ -118,7 +132,7 @@ async function handleAddComment() {
 }
 
 async function handleDeleteComment(id) {
-  await ElMessageBox.confirm('确定要删除这条评论吗?','提示')
+  await ElMessageBox.confirm('确定要删除这条评论吗?', '提示')
   await deleteComment(id)
   const res = await getComments({articleId: route.params.id, page: 1, size: 10})
   comments.value = res.data.data.list
@@ -126,6 +140,45 @@ async function handleDeleteComment(id) {
 </script>
 
 <style scoped>
+.author-info {
+  margin: 10px 0;
+}
+
+.author-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #409eff;
+}
+
+.author-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-user {
+  margin-bottom: 4px;
+}
+
+.comment-user a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: #409eff;
+  font-size: 13px;
+}
+
+.comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .detail {
   max-width: 800px;
   margin: 0 auto;

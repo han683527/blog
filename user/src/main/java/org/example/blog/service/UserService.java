@@ -12,8 +12,11 @@ public interface UserService extends IService<User> {
 
     String uploadAvatar(MultipartFile file);
 
-    // TODO 用户端 查看个人信息 查看他人个人信息
+    // 个人信息查看
     User getUser();
+
+    // 查看他人信息
+    User getUserById(Long id);
 
     void checkAdmin();
 

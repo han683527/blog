@@ -16,6 +16,10 @@ public class ArticleResponse {
 
     private Long authorId;
 
+    private String authorName;
+
+    private String authorAvatar;
+
     private Long categoryId;
 
     private List<Long> tags;

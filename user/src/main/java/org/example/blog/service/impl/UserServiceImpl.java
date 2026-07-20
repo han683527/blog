@@ -82,8 +82,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return url;
     }
 
+    @Override
     public User getUser() {
         return this.getById(UserContext.get());
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return this.getOptById(id).orElseThrow(() -> new NotFoundException("用户不存在"));
     }
 
     @Override
