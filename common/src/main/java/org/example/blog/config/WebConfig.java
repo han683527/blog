@@ -25,6 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
                 //排除特定请求
                 .excludePathPatterns(
                         "/user/public/{id}",
+                        "/notification/subscribe",
                         "/auth/**",
                         "/article/list",
                         "/article/{id}",

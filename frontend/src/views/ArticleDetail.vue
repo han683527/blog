@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from "vue"
+import {ref, onMounted, onUnmounted} from "vue"
 import {useRoute, useRouter} from "vue-router"
 import {getUser} from "@/api/user"
 import {getArticle} from "@/api/articles"
@@ -86,6 +86,7 @@ onMounted(async () => {
   // 获取评论列表
   const commentRes = await getComments({articleId: route.params.id, page: 1, size: 10})
   comments.value = commentRes.data.data.list
+  window.addEventListener('sse-comment', onSseComment)
   loading.value = false
 })
 
@@ -138,6 +139,19 @@ async function handleDeleteComment(id) {
   const res = await getComments({articleId: route.params.id, page: 1, size: 10})
   comments.value = res.data.data.list
 }
+
+function onSseComment(e) {
+  const data = e.detail
+  if (data.type === 'NEW_COMMENT' && Number(data.articleId) === Number(route.params.id)) {
+    getComments({ articleId: route.params.id, page: 1, size: 10}).then(res => {
+      comments.value = res.data.data.list
+    })
+  }
+}
+
+onUnmounted(() => {
+  window.removeEventListener('sse-comment', onSseComment)
+})
 </script>
 
 <style scoped>

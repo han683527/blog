@@ -10,22 +10,22 @@ import org.example.blog.dto.request.CommentRequest;
 import org.example.blog.dto.request.CommentSearchRequest;
 import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
+import org.example.blog.entity.Article;
 import org.example.blog.entity.Comment;
 import org.example.blog.entity.User;
 import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.CommentMapper;
-import org.example.blog.service.ArticleService;
-import org.example.blog.service.CommentService;
-import org.example.blog.service.NotificationService;
-import org.example.blog.service.UserService;
+import org.example.blog.service.*;
 import org.example.blog.util.UserContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -37,14 +37,17 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private final NotificationService notificationService;
     private final UserService userService;
     private final ArticleService articleService;
+    private final SseService sseService;
 
     public CommentServiceImpl(StringRedisTemplate redisTemplate,
                               NotificationService notificationService,
                               UserService userService,
+                              SseService sseService,
                               @Lazy ArticleService articleService) {
         this.redisTemplate = redisTemplate;
         this.notificationService = notificationService;
         this.userService = userService;
+        this.sseService = sseService;
         this.articleService = articleService;
     }
 
@@ -64,6 +67,26 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setUserId(UserContext.get());
         this.save(comment);
         notificationService.createNotification(UserContext.get(), articleId, "COMMENT");
+
+        // 推送新评论给文章作者
+        Article article = articleService.getById(articleId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("type", "NEW_COMMENT");
+        data.put("articleId", articleId);
+
+        CommentResponse response = new CommentResponse();
+        response.setId(comment.getId());
+        response.setContent(comment.getContent());
+        response.setArticleId(articleId);
+        response.setUserId(comment.getUserId());
+
+        User user = userService.getById(comment.getUserId());
+        if (user != null) {
+            response.setUserName(user.getNickname());
+            response.setUserAvatar(user.getAvatar());
+        }
+        data.put("comment", response);
+        sseService.sendEvent(article.getAuthorId(), "comment", data);
     }
 
     public Comment getCommentById(Long id) {
@@ -95,8 +118,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         if (comment == null) {
             throw new NotFoundException("评论不存在");
         }
-        if (comment.getUserId() != UserContext.get()) {
-            throw new ForbiddenException("不能删除别人的评论");
+
+        // 对于一篇文章下的评论:只有文章作者和评论者可以删除
+        // 评论者自己可以删除评论
+        if (!comment.getUserId().equals(UserContext.get())) {
+            Article article = articleService.getById(comment.getArticleId());
+            // 文章作者可以删除文章下的评论
+            if (article == null || !article.getAuthorId().equals(UserContext.get())) {
+                throw new ForbiddenException("不能删除别人的评论");
+            }
         }
         this.removeById(id);
 

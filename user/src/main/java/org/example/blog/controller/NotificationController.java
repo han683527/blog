@@ -6,7 +6,11 @@ import org.example.blog.dto.response.NotificationResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.service.NotificationService;
+import org.example.blog.service.SseService;
+import org.example.blog.util.JwtUtil;
+import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RequiredArgsConstructor
 @RestController
@@ -14,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final SseService sseService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/list")
     public Result<PageResponse<NotificationResponse>> pageNotification(@RequestBody PageRequest request) {
@@ -35,5 +41,12 @@ public class NotificationController {
     @GetMapping("/unread")
     public Result<Long> getUnreadCount(){
         return Result.success(notificationService.getUnreadCount());
+    }
+
+    @GetMapping("/subscribe")
+    public SseEmitter subscribe(@RequestParam String token) {
+        // 不能用 UserContext.get() ,因为 subscribe 已经被排除在外
+        Long userId = jwtUtil.validateAndGetUserId(token);
+        return sseService.subscribe(userId);
     }
 }

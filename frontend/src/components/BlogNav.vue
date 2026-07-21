@@ -26,13 +26,19 @@
               <div v-if="notifications.length === 0" class="empty">暂无通知</div>
               <div v-for="notification in notifications" :key="notification.id" class="notification-item"
                    @click="handleMarkAsRead(notification.id)">
-                <div class="notification-content">
-                  <span v-if="notification.type === 'LIKE'">{{ notification.actorNickname }} 赞了你的文章</span>
-                  <span v-else-if="notification.type === 'COLLECT'">{{ notification.actorNickname }} 收藏了你的文章</span>
-                  <span v-else-if="notification.type === 'COMMENT'">{{ notification.actorNickname }} 评论了你的文章</span>
-                  <router-link :to="'/article/' + notification.articleId" class="notification-title">{{ notification.articleTitle }}</router-link>
-                </div>
-                <div class="notification-time">{{ notification.createTime }}</div>
+                <router-link :to="'/article/' + notification.articleId" class="notification-link">
+                  <div class="notification-content">
+                    <span v-if="notification.type === 'LIKE'">{{ notification.actorNickname }} 赞了你的文章</span>
+                    <span v-else-if="notification.type === 'COLLECT'">{{
+                        notification.actorNickname
+                      }} 收藏了你的文章</span>
+                    <span v-else-if="notification.type === 'COMMENT'">{{
+                        notification.actorNickname
+                      }} 评论了你的文章</span>
+                    <span class="notification-title">{{ notification.articleTitle }}</span>
+                  </div>
+                  <div class="notification-time">{{ notification.createTime }}</div>
+                </router-link>
               </div>
               <el-button size="small" @click="handleMarkAllAsRead" class="read-all">全部已读</el-button>
             </div>
@@ -58,6 +64,7 @@ import {getNotifications, markAsRead, markAllAsRead, getUnreadCount} from "@/api
 const router = useRouter()
 const user = ref(null)
 const unreadCount = ref(0)
+const eventSource = ref(null)
 const notifications = ref([])
 
 onMounted(async () => {
@@ -66,6 +73,7 @@ onMounted(async () => {
       const res = await getUser()
       user.value = res.data.data
       unreadCount.value = (await getUnreadCount()).data.data
+      connectSSE()
     } catch {
     }
   }
@@ -75,7 +83,36 @@ function handleLogout() {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   user.value = null
+  disconnectSSE()
   router.push('/')
+}
+
+function connectSSE() {
+  const token = localStorage.getItem('accessToken')
+  if (!token) return
+  if (eventSource.value) eventSource.value.close()
+  const es = new EventSource('/notification/subscribe?token=' + encodeURIComponent(token)) // 向后端发送一个 get 请求,后端返回 SseEmitter
+  eventSource.value = es
+  es.addEventListener('notification', (e) => {
+    getUnreadCount().then(res => {
+      unreadCount.value = res.data.data
+    })
+  })
+  es.addEventListener('comment', (e) => {
+    window.dispatchEvent(new CustomEvent('sse-comment', {detail: JSON.parse(e.data)})) // 转发为自定义时间,让 ArticleDetail 也能收到
+    getUnreadCount().then(res => {
+      unreadCount.value = res.data.data
+    })
+  })
+  es.onerror = () => {
+  }
+}
+
+function disconnectSSE() {
+  if (eventSource.value) {
+    eventSource.value.close()
+    eventSource.value = null
+  }
 }
 
 async function fetchNotifications() {
@@ -85,13 +122,14 @@ async function fetchNotifications() {
 
 async function handleMarkAsRead(id) {
   await markAsRead(id)
-  unreadCount.value--
+  unreadCount.value = Math.max(0, unreadCount.value - 1)
+  notifications.value = notifications.value.filter(n => n.id !== id)
 }
 
 async function handleMarkAllAsRead() {
   await markAllAsRead()
   unreadCount.value = 0
-  notifications.value.forEach(n => n.readFlag = true)
+  notifications.value = []
 }
 </script>
 
@@ -141,6 +179,12 @@ async function handleMarkAllAsRead() {
   padding: 8px 12px;
   cursor: pointer;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.notification-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 
 .notification-item:hover {

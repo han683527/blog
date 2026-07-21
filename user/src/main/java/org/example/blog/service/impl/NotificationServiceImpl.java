@@ -52,6 +52,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         Long userId = UserContext.get();
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getUserId, userId);
+        wrapper.eq(Notification::isReadFlag, false);
         Page<Notification> p = this.page(new Page<>(pageRequest.getPage(), pageRequest.getSize()), wrapper);
 
         // 获取操作人(actor)以及操作对象(article)

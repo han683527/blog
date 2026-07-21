@@ -13,11 +13,14 @@ import org.example.blog.mapper.ArticleCollectMapper;
 import org.example.blog.service.ArticleService;
 import org.example.blog.service.CollectService;
 import org.example.blog.service.NotificationService;
+import org.example.blog.service.SseService;
 import org.example.blog.util.UserContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,13 +28,15 @@ public class CollectServiceImpl extends ServiceImpl<ArticleCollectMapper, Articl
     private final NotificationService notificationService;
     private final ArticleService articleService;
     private final ArticleQueryService articleQueryService;
+    private final SseService sseService;
 
     public CollectServiceImpl(NotificationService notificationService,
                               @Lazy ArticleService articleService,
-                              @Lazy ArticleQueryService articleQueryService) {
+                              @Lazy ArticleQueryService articleQueryService, SseService sseService) {
         this.notificationService = notificationService;
         this.articleService = articleService;
         this.articleQueryService = articleQueryService;
+        this.sseService = sseService;
     }
 
     @Override
@@ -46,6 +51,13 @@ public class CollectServiceImpl extends ServiceImpl<ArticleCollectMapper, Articl
             articleCollect.setArticleId(articleId);
             articleCollect.setUserId(userId);
             notificationService.createNotification(userId, articleId, "COLLECT");
+
+            // 推送收藏信息
+            Article article = articleService.getById(articleId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("type", "NEW_COLLECT");
+            data.put("articleId", articleId);
+            sseService.sendEvent(article.getAuthorId(), "notification", data);
             this.save(articleCollect);
         }
     }
