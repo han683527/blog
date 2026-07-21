@@ -19,7 +19,7 @@
       <!-- 正文 -->
       <div class="content" v-html="article.content"/>
       <!-- 点赞/收藏 -->
-      <div class="actions">
+      <div class="actions" v-if="user">
         <el-button @click="handleLike" :type="article.isLike ? 'primary' : 'default'">
           {{ article.isLike ? '已赞' : '点赞' }}
         </el-button>

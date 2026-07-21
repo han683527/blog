@@ -68,22 +68,29 @@ public class ArticleQueryService {
                 .stream().collect(Collectors.groupingBy(Comment::getArticleId, Collectors.counting()));
 
         // 当前用户点赞/收藏状态
-        Set<Long> likedIds = likeService.list(
-                        new LambdaQueryWrapper<ArticleLike>()
-                                .eq(ArticleLike::getUserId, userId)
-                                .in(ArticleLike::getArticleId, articleIds))
-                .stream().map(ArticleLike::getArticleId).collect(Collectors.toSet());
-        Set<Long> collectedIds = collectService.list(
-                        new LambdaQueryWrapper<ArticleCollect>()
-                                .eq(ArticleCollect::getUserId, userId)
-                                .in(ArticleCollect::getArticleId, articleIds))
-                .stream().map(ArticleCollect::getArticleId).collect(Collectors.toSet());
+        Set<Long> likedIds;
+        Set<Long> collectedIds;
+        if (userId != null) {
+            likedIds = likeService.list(
+                            new LambdaQueryWrapper<ArticleLike>()
+                                    .eq(ArticleLike::getUserId, userId)
+                                    .in(ArticleLike::getArticleId, articleIds))
+                    .stream().map(ArticleLike::getArticleId).collect(Collectors.toSet());
+            collectedIds = collectService.list(
+                            new LambdaQueryWrapper<ArticleCollect>()
+                                    .eq(ArticleCollect::getUserId, userId)
+                                    .in(ArticleCollect::getArticleId, articleIds))
+                    .stream().map(ArticleCollect::getArticleId).collect(Collectors.toSet());
+        } else {
+            likedIds = Set.of();
+            collectedIds = Set.of();
+        }
 
         // 返回 标签(多个) | 用户信息 | 点赞数 | 点赞状态(是否点赞) | 收藏数 | 收藏状态 | 评论数
         for (ArticleResponse response : list) {
             response.setTags(tagMap.getOrDefault(response.getId(), List.of()));
             User author = userService.getById(response.getAuthorId());
-            if (author !=null) {
+            if (author != null) {
                 response.setAuthorName(author.getNickname());
                 response.setAuthorAvatar(author.getAvatar());
             }
