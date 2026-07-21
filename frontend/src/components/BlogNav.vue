@@ -29,12 +29,9 @@
                 <router-link :to="'/article/' + notification.articleId" class="notification-link">
                   <div class="notification-content">
                     <span v-if="notification.type === 'LIKE'">{{ notification.actorNickname }} 赞了你的文章</span>
-                    <span v-else-if="notification.type === 'COLLECT'">{{
-                        notification.actorNickname
-                      }} 收藏了你的文章</span>
-                    <span v-else-if="notification.type === 'COMMENT'">{{
-                        notification.actorNickname
-                      }} 评论了你的文章</span>
+                    <span v-else-if="notification.type === 'COLLECT'">{{ notification.actorNickname }} 收藏了你的文章</span>
+                    <span v-else-if="notification.type === 'COMMENT'">{{ notification.actorNickname }} 评论了你的文章</span>
+                    <span v-else-if="notification.type === 'DELETE_COMMENT'">文章的作者 {{ notification.actorNickname }} 删除了你的评论</span>
                     <span class="notification-title">{{ notification.articleTitle }}</span>
                   </div>
                   <div class="notification-time">{{ notification.createTime }}</div>

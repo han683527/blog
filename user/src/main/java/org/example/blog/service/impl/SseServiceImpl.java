@@ -37,19 +37,19 @@ public class SseServiceImpl implements SseService {
 
         // 连接正常关闭时,从 Map 中移除
         emitter.onCompletion(() -> {
-            emitters.remove(userId);
+            emitters.remove(userId,emitter);
             log.info("SSE 连接关闭: userId={}", userId);
         });
 
         // 连接超时时,从 Map 中移除
         emitter.onTimeout(() -> {
-            emitters.remove(userId);
+            emitters.remove(userId,emitter);
             log.info("SSE 连接超时: userId={}", userId);
         });
 
         // 连接出错是, 从 Map 中移除
         emitter.onError(e -> {
-            emitters.remove(userId);
+            emitters.remove(userId,emitter);
             log.info("SSE 连接错误: userId={}", userId);
         });
 
@@ -69,7 +69,7 @@ public class SseServiceImpl implements SseService {
                 log.info("SSE 推送成功: userId={}, event={}", userId, eventName);
             } catch (IOException e) {
                 //推送失败(比如用户已经断开连接), 移除该连接
-                emitters.remove(userId);
+                emitters.remove(userId,emitter);
                 log.warn("SSE 推送失败, 已移除连接: userId={}", userId);
             }
         }

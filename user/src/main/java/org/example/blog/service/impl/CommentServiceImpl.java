@@ -12,6 +12,7 @@ import org.example.blog.dto.response.CommentResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
 import org.example.blog.entity.Comment;
+import org.example.blog.entity.Notification;
 import org.example.blog.entity.User;
 import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
@@ -123,10 +124,21 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         // 评论者自己可以删除评论
         if (!comment.getUserId().equals(UserContext.get())) {
             Article article = articleService.getById(comment.getArticleId());
-            // 文章作者可以删除文章下的评论
+            // 文章作者可以删除文章下的评论 -> 给评论者发通知
             if (article == null || !article.getAuthorId().equals(UserContext.get())) {
                 throw new ForbiddenException("不能删除别人的评论");
             }
+            Notification notification = new Notification();
+            notification.setUserId(comment.getUserId()); // 接收者是被删评的人
+            notification.setActorId(UserContext.get()); // 发送者是当前登录用户(即作者)
+            notification.setArticleId(comment.getArticleId());
+            notification.setType("DELETE_COMMENT");
+            notificationService.save(notification);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("type", "DELETE_COMMENT");
+            data.put("articleId", comment.getArticleId());
+            sseService.sendEvent(comment.getUserId(), "comment", data);
         }
         this.removeById(id);
 

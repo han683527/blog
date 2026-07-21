@@ -147,6 +147,11 @@ function onSseComment(e) {
       comments.value = res.data.data.list
     })
   }
+  if (data.type === 'DELETE_COMMENT' && Number(data.articleId) === Number(route.params.id)) {
+    getComments({articleId: route.params.id, page: 1, size: 10}).then(res => {
+      comments.value = res.data.data.list
+    })
+  }
 }
 
 onUnmounted(() => {
