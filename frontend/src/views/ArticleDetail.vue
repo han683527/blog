@@ -40,7 +40,7 @@
           </div>
           <div class="comment-body">{{ c.content }}</div>
           <div class="comment-time">{{ c.createTime }}</div>
-          <el-button v-if="user.id === article.authorId" type="danger" size="small" @click="handleDeleteComment(c.id)">
+          <el-button v-if="user?.id === article.authorId" type="danger" size="small" @click="handleDeleteComment(c.id)">
             删除
           </el-button>
         </div>
@@ -73,21 +73,26 @@ const comments = ref([])
 const commentText = ref('')
 
 onMounted(async () => {
-  // 获取文章详情
-  const res = await getArticle(route.params.id)
-  article.value = res.data.data
+  try {
+    // 获取文章详情
+    const res = await getArticle(route.params.id)
+    article.value = res.data.data
 
-  // 获取当前用户
-  if (localStorage.getItem('accessToken')) {
-    const userRes = await getUser()
-    user.value = userRes.data.data
+    // 获取当前用户
+    if (localStorage.getItem('accessToken')) {
+      const userRes = await getUser()
+      user.value = userRes.data.data
+    }
+
+    // 获取评论列表
+    const commentRes = await getComments({articleId: route.params.id, page: 1, size: 10})
+    comments.value = commentRes.data.data.list
+    window.addEventListener('sse-comment', onSseComment)
+  } catch (e) {
+    ElMessage.error(e.message || '加载失败')
+  } finally {
+    loading.value = false
   }
-
-  // 获取评论列表
-  const commentRes = await getComments({articleId: route.params.id, page: 1, size: 10})
-  comments.value = commentRes.data.data.list
-  window.addEventListener('sse-comment', onSseComment)
-  loading.value = false
 })
 
 async function handleLike() {
