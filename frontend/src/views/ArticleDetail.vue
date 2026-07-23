@@ -88,6 +88,7 @@ onMounted(async () => {
     const commentRes = await getComments({articleId: route.params.id, page: 1, size: 10})
     comments.value = commentRes.data.data.list
     window.addEventListener('sse-comment', onSseComment)
+    window.addEventListener('sse-notification', onSseNotification)
   } catch (e) {
     ElMessage.error(e.message || '加载失败')
   } finally {
@@ -159,8 +160,17 @@ function onSseComment(e) {
   }
 }
 
+function onSseNotification(e) {
+  const data = e.detail
+  if (Number(data.articleId) === Number(route.params.id)) {
+    if (data.type === 'NEW_LIKE') article.value.likeCount++
+    if (data.type === 'NEW_COLLECT') article.value.collectCount++
+  }
+}
+
 onUnmounted(() => {
   window.removeEventListener('sse-comment', onSseComment)
+  window.removeEventListener('sse-notification', onSseNotification)
 })
 </script>
 

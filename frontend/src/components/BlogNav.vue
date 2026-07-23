@@ -91,12 +91,20 @@ function connectSSE() {
   const es = new EventSource('/notification/subscribe?token=' + encodeURIComponent(token)) // 向后端发送一个 get 请求,后端返回 SseEmitter
   eventSource.value = es
   es.addEventListener('notification', (e) => {
+    try {
+      const data = JSON.parse(e.data)
+      window.dispatchEvent(new CustomEvent('sse-notification', {detail: data}))
+    } catch {}
     getUnreadCount().then(res => {
       unreadCount.value = res.data.data
     })
   })
   es.addEventListener('comment', (e) => {
-    window.dispatchEvent(new CustomEvent('sse-comment', {detail: JSON.parse(e.data)})) // 转发为自定义时间,让 ArticleDetail 也能收到
+    // 转发为自定义事件,让 ArticleDetail 也能收到
+    try {
+      const data = JSON.parse(e.data)
+      window.dispatchEvent(new CustomEvent('sse-comment', {detail: data}))
+    } catch {}
     getUnreadCount().then(res => {
       unreadCount.value = res.data.data
     })
