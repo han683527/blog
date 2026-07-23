@@ -9,7 +9,7 @@ import org.example.blog.entity.Comment;
 
 public interface CommentService extends IService<Comment> {
 
-    // 在某片文章下创建评论
+    // 在某篇文章下创建评论
     void createCommentByArticleId(CommentRequest request);
 
     // 获取评论

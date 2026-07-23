@@ -23,8 +23,8 @@ public class AdminArticleController {
     }
 
     @PostMapping("/list")
-    public Result<PageResponse<ArticleResponse>> pageArticle(@RequestBody ArticleSearchRequest request) {
-        return Result.success(articleService.pageArticle(request));
+    public Result<PageResponse<ArticleResponse>> adminPageArticle(@RequestBody ArticleSearchRequest request) {
+        return Result.success(articleService.adminPageArticle(request));
     }
 
     @PutMapping

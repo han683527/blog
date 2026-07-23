@@ -109,7 +109,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public PageResponse<User> pageUser(PageRequest request){
+    public PageResponse<User> adminPageUser(PageRequest request){
         checkAdmin();
         Page<User> p = this.page(new Page<>(request.getPage(),request.getSize()));
         PageResponse<User> response = new PageResponse<>();

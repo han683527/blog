@@ -8,7 +8,6 @@ import org.example.blog.dto.response.Result;
 import org.example.blog.service.NotificationService;
 import org.example.blog.service.SseService;
 import org.example.blog.util.JwtUtil;
-import org.example.blog.util.UserContext;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 

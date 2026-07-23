@@ -2,11 +2,7 @@ package org.example.blog.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.blog.dto.request.LoginRequest;
-import org.example.blog.dto.request.RefreshTokenRequest;
-import org.example.blog.dto.request.RegisterRequest;
 import org.example.blog.dto.request.UpdateUserRequest;
-import org.example.blog.dto.response.LoginResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.entity.User;
 import org.example.blog.service.UserService;

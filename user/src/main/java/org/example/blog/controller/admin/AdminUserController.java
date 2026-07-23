@@ -22,7 +22,7 @@ public class AdminUserController {
     }
 
     @PostMapping("/list")
-    public Result<PageResponse<User>> pageUser(PageRequest request){
-        return Result.success(userService.pageUser(request));
+    public Result<PageResponse<User>> adminPageUser(PageRequest request){
+        return Result.success(userService.adminPageUser(request));
     }
 }

@@ -15,6 +15,8 @@ public interface TagService extends IService<Tag> {
 
     void updateTagById(TagRequest request);
 
+    PageResponse<TagResponse> adminPageTag(PageRequest request);
+
     PageResponse<TagResponse> pageTag(PageRequest request);
 
     Tag getTagById(Long id);

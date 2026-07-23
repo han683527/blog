@@ -15,10 +15,9 @@ public interface CategoryService extends IService<Category> {
 
     void updateCategory(CategoryRequest request);
 
+    PageResponse<CategoryResponse> adminPageCategory(PageRequest request);
     // 用户分页查询
     PageResponse<CategoryResponse> pageCategory(PageRequest request);
 
     Category getCategoryById(Long categoryId);
-
-    // TODO 管理员加 CRUD
 }

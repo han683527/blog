@@ -4,11 +4,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.ArticleRequest;
 import org.example.blog.dto.request.ArticleSearchRequest;
-import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
-import org.example.blog.entity.Article;
 import org.example.blog.service.ArticleService;
 import org.springframework.web.bind.annotation.*;
 

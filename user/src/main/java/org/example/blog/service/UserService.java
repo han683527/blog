@@ -22,5 +22,5 @@ public interface UserService extends IService<User> {
 
     void adminDeleteUserById(Long id);
 
-    PageResponse<User> pageUser(PageRequest request);
+    PageResponse<User> adminPageUser(PageRequest request);
 }

@@ -8,7 +8,6 @@ import org.example.blog.dto.request.RegisterRequest;
 import org.example.blog.dto.response.LoginResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.service.AuthService;
-import org.example.blog.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
