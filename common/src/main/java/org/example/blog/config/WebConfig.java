@@ -42,7 +42,7 @@ public class WebConfig implements WebMvcConfigurer {
         // 对所有接口生效
         registry.addMapping("/**")
                 // 允许那些前端地址访问
-                .allowedOrigins("http://localhost:5173", "http://localhost:6173")
+                .allowedOrigins("http://localhost:5173", "http://localhost:5174")
                 // 允许所有 HTTP 方法(POST, GET, PUT, DELETE)
                 .allowedMethods("*")
                 //允许所有请求头

@@ -192,10 +192,19 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     @Override
     public PageResponse<CommentResponse> adminPageComment(CommentSearchRequest request) {
+        // 擦汗评论相关信息
         userService.checkAdmin();
         LambdaQueryWrapper<Comment> wrapper = new LambdaQueryWrapper<>();
         Page<Comment> p = this.page(new Page<>(request.getPage(), request.getSize()), wrapper);
         List<CommentResponse> list = BeanUtil.copyToList(p.getRecords(), CommentResponse.class);
+        // 补充用户名字段
+        for (CommentResponse commentResponse : list) {
+            User user = userService.getById(commentResponse.getUserId());
+            if(!user.equals(null)) {
+                commentResponse.setUserName(user.getNickname());
+            }
+        }
+
         PageResponse<CommentResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());
         response.setList(list);

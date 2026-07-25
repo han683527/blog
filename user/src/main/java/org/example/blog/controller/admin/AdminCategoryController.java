@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blog.dto.request.CategoryRequest;
 import org.example.blog.dto.request.PageRequest;
+import org.example.blog.dto.response.CategoryResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.service.CategoryService;
@@ -35,7 +36,7 @@ public class AdminCategoryController {
     }
 
     @PostMapping("/list")
-    public Result<PageResponse> adminPageCategory(@Valid @RequestBody PageRequest request){
+    public Result<PageResponse<CategoryResponse>> adminPageCategory(@Valid @RequestBody PageRequest request){
         return Result.success(categoryService.adminPageCategory(request));
     }
 }

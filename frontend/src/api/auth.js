@@ -11,3 +11,7 @@ export function register(data) {
 export function sendCode(email) {
     return request.post('/auth/code', null, { params: { email } })
 }
+
+export function logout() {
+    return request.post('/auth/logout')
+}

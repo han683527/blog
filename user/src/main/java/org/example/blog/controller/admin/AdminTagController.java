@@ -6,6 +6,7 @@ import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.request.TagRequest;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
+import org.example.blog.dto.response.TagResponse;
 import org.example.blog.service.TagService;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class AdminTagController {
     }
 
     @PostMapping("/list")
-    public Result<PageResponse> adminPageTag(@Valid @RequestBody PageRequest request){
+    public Result<PageResponse<TagResponse>> adminPageTag(@Valid @RequestBody PageRequest request){
         return Result.success(tagService.adminPageTag(request));
     }
 }

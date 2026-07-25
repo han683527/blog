@@ -56,7 +56,8 @@
 import {ref, onMounted} from 'vue'
 import {useRouter} from 'vue-router'
 import {getUser} from '@/api/user'
-import {getNotifications, markAsRead, markAllAsRead, getUnreadCount} from "@/api/notifications";
+import {getNotifications, markAsRead, markAllAsRead, getUnreadCount} from "@/api/notifications"
+import {logout} from '@/api/auth'
 
 const router = useRouter()
 const user = ref(null)
@@ -77,6 +78,7 @@ onMounted(async () => {
 })
 
 function handleLogout() {
+  logout()
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   user.value = null

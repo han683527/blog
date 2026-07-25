@@ -1,12 +1,11 @@
 <template>
   <div>
-    <h1>用户管理</h1>
-    <!-- el:table :data 绑定用户数组, stripe 斑马纹-->
-    <el-table :data="users" stripe>
+    <h1>文章管理</h1>
+    <el-table :data="articles" stripe>
       <el-table-column prop="id" label="ID" width="80"/>
-      <el-table-column prop="email" label="邮箱"/>
-      <el-table-column prop="nickname" label="昵称"/>
-      <el-table-column prop="role" label="角色"/>
+      <el-table-column prop="title" label="标题"/>
+      <el-table-column prop="content" label="正文"/>
+      <el-table-column prop="authorId" label="作者"/>
       <el-table-column prop="createTime" label="创建时间"/>
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
@@ -14,7 +13,6 @@
         </template>
       </el-table-column>
     </el-table>
-    <!-- 分页 -->
     <el-pagination
         background
         layout="prev, pager, next"
@@ -28,21 +26,21 @@
 
 <script setup>
 import {ref, onMounted} from 'vue'
-import {pageUsers, deleteUser} from "@/api/user"
 import {ElMessage, ElMessageBox} from "element-plus"
+import {deleteArticle, pageArticles} from "@/api/article"
 
-const users = ref([])
+const articles = ref([])
 const total = ref(0)
 const current = ref(1)
 
 onMounted(() => {
-  loadUsers()
+  loadArticles()
 })
 
-async function loadUsers() {
+async function loadArticles() {
   try {
-    const res = await pageUsers({page: current.value, size: 10})
-    users.value = res.data.data.list
+    const res = await pageArticles({page: current.value, size: 10})
+    articles.value = res.data.data.list
     total.value = res.data.data.total
   } catch (e) {
     ElMessage.error(e.message)
@@ -51,16 +49,16 @@ async function loadUsers() {
 
 function onPageChange(page) {
   current.value = page
-  loadUsers()
+  loadArticles()
 }
 
 async function handleDelete(id) {
   try {
-    await ElMessageBox.confirm('确定要删除该用户?', '提示')
-    await deleteUser(id)
+    await ElMessageBox.confirm('确定要删除该文章?', '提示')
+    await deleteArticle(id)
     ElMessage.success("删除成功")
     current.value = 1
-    loadUsers()
+    loadArticles()
   } catch (e) {}
 }
 </script>

@@ -1,12 +1,11 @@
 <template>
   <div>
-    <h1>用户管理</h1>
-    <!-- el:table :data 绑定用户数组, stripe 斑马纹-->
-    <el-table :data="users" stripe>
+    <h1>评论管理</h1>
+    <el-table :data="comments" stripe>
       <el-table-column prop="id" label="ID" width="80"/>
-      <el-table-column prop="email" label="邮箱"/>
-      <el-table-column prop="nickname" label="昵称"/>
-      <el-table-column prop="role" label="角色"/>
+      <el-table-column prop="content" label="内容"/>
+      <el-table-column prop="userName" label="评论者"/>
+      <el-table-column prop="articleId" label="归属"/>
       <el-table-column prop="createTime" label="创建时间"/>
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
@@ -14,53 +13,52 @@
         </template>
       </el-table-column>
     </el-table>
-    <!-- 分页 -->
     <el-pagination
         background
         layout="prev, pager, next"
         :total="total"
         :page-size="10"
         :current-page="current"
-        @current-change="onPageChange"
+        @current-change="onChangePage"
     />
   </div>
 </template>
 
 <script setup>
 import {ref, onMounted} from 'vue'
-import {pageUsers, deleteUser} from "@/api/user"
 import {ElMessage, ElMessageBox} from "element-plus"
+import {deleteComment, pageComments} from "@/api/comment"
 
-const users = ref([])
+const comments = ref([])
 const total = ref(0)
 const current = ref(1)
 
 onMounted(() => {
-  loadUsers()
+  loadComments()
 })
 
-async function loadUsers() {
+async function loadComments() {
   try {
-    const res = await pageUsers({page: current.value, size: 10})
-    users.value = res.data.data.list
+    const res = await pageComments({page: current.value, size: 10})
+    comments.value = res.data.data.list
     total.value = res.data.data.total
   } catch (e) {
     ElMessage.error(e.message)
   }
 }
 
-function onPageChange(page) {
+function onChangePage(page) {
   current.value = page
-  loadUsers()
+  loadComments()
 }
 
 async function handleDelete(id) {
   try {
-    await ElMessageBox.confirm('确定要删除该用户?', '提示')
-    await deleteUser(id)
+    await ElMessageBox.confirm('确定要删除该评论?', '提示')
+    await deleteComment(id)
     ElMessage.success("删除成功")
     current.value = 1
-    loadUsers()
+    loadComments()
   } catch (e) {}
 }
 </script>

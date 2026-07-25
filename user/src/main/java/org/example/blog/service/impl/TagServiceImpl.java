@@ -41,7 +41,7 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
     @Override
     public void createTag(TagRequest request) {
-        if (request.getId() == null) {
+        if (request.getTagId() == null) {
             Tag tag = new Tag();
             tag.setTagName(request.getTagName());
             this.save(tag);
@@ -65,7 +65,7 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
     @Override
     public void updateTagById(TagRequest request) {
-        Long id = request.getId();
+        Long id = request.getTagId();
         Tag tag = this.getOptById(id)
                 .orElseThrow(() -> new NotFoundException("标签不存在"));
         tag.setTagName(request.getTagName());
@@ -77,7 +77,7 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
     @Override
     public PageResponse<TagResponse> adminPageTag(PageRequest request) {
-        Page<Tag> p = this.page(new Page<>(request.getPage(), request.getPage()));
+        Page<Tag> p = this.page(new Page<>(request.getPage(), request.getSize()));
         List<TagResponse> list = BeanUtil.copyToList(p.getRecords(), TagResponse.class);
         PageResponse<TagResponse> response = new PageResponse<>();
         response.setTotal(p.getTotal());

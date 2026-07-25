@@ -1,41 +1,47 @@
 <template>
   <div class="login">
-    <el-card class="login-card">
-      <h2>登录</h2>
-      <el-form :model="form" label-width="80px">
+    <el-card>
+      <el-form label-width="80px">
         <el-form-item label="邮箱">
           <el-input v-model="form.email"/>
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" show-password/>
+          <el-input v-model="form.password" type="password" show-password></el-input>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleLogin">登录</el-button>
-          <router-link to="/register">
-            <el-button text>去注册</el-button>
-          </router-link>
         </el-form-item>
       </el-form>
     </el-card>
   </div>
 </template>
-
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { login } from '@/api/auth'
-import { ElMessage } from 'element-plus'
+import {ref} from 'vue'
+import {login} from '@/api/login'
+import {ElMessage} from "element-plus"
+import {useRouter} from 'vue-router'
+import {getUser} from "@/api/user"
 
-const router = useRouter()
 const form = ref({})
+const router = useRouter()
 
 async function handleLogin() {
   try {
     const res = await login(form.value)
     localStorage.setItem('accessToken', res.data.data.accessToken)
     localStorage.setItem('refreshToken', res.data.data.refreshToken)
+
+    // 查当前用户角色
+    const useRes = await getUser()
+    if (useRes.data.data.role !== 'admin') {
+      // 权限不足处理
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      ElMessage.error('权限不足')
+      return
+    }
     ElMessage.success('登录成功')
-    router.push('/')
+    router.push('/articles')
   } catch (e) {
     ElMessage.error(e.message || '登录失败')
   }
@@ -44,11 +50,10 @@ async function handleLogin() {
 
 <style scoped>
 .login {
+  height: 100vh;
   display: flex;
+  align-items: center;
   justify-content: center;
-  margin-top: 80px;
-}
-.login-card {
-  width: 400px;
+  background: #f0f2f5;
 }
 </style>
