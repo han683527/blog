@@ -3,7 +3,11 @@
     <h1>评论管理</h1>
     <el-table :data="comments" stripe>
       <el-table-column prop="id" label="ID" width="80"/>
-      <el-table-column prop="content" label="内容"/>
+      <el-table-column label="内容" width="180">
+        <template #default="{ row }">
+          <span class="content-cell">{{ row.content }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="userName" label="评论者"/>
       <el-table-column prop="articleId" label="归属"/>
       <el-table-column prop="createTime" label="创建时间"/>
@@ -67,5 +71,11 @@ async function handleDelete(id) {
 h1 {
   font-size: 24px;
   margin-bottom: 20px;
+}
+.content-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

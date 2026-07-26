@@ -4,7 +4,11 @@
     <el-table :data="articles" stripe>
       <el-table-column prop="id" label="ID" width="80"/>
       <el-table-column prop="title" label="标题"/>
-      <el-table-column prop="content" label="正文"/>
+      <el-table-column label="正文" width="180">
+  <template #default="{ row }">
+    <span class="content-cell">{{ row.content }}</span>
+  </template>
+</el-table-column>
       <el-table-column prop="authorId" label="作者"/>
       <el-table-column prop="createTime" label="创建时间"/>
       <el-table-column label="操作" width="120">
@@ -67,5 +71,11 @@ async function handleDelete(id) {
 h1 {
   font-size: 24px;
   margin-bottom: 20px;
+}
+.content-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

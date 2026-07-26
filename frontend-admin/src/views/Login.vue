@@ -1,18 +1,22 @@
 <template>
-  <div class="login">
-    <el-card>
-      <el-form label-width="80px">
-        <el-form-item label="邮箱">
-          <el-input v-model="form.email"/>
-        </el-form-item>
-        <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" show-password></el-input>
+  <div class="admin-login">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>管理后台</h2>
+        <p>管理员登录</p>
+      </div>
+      <el-form size="large">
+        <el-form-item>
+          <el-input v-model="form.email" placeholder="邮箱" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleLogin">登录</el-button>
+          <el-input v-model="form.password" type="password" show-password placeholder="密码" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleLogin" class="login-btn" round>登录</el-button>
         </el-form-item>
       </el-form>
-    </el-card>
+    </div>
   </div>
 </template>
 <script setup>
@@ -49,11 +53,40 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.login {
+.admin-login {
   height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f2f5;
+  background: linear-gradient(135deg, #e8edf5 0%, #f0f4f8 100%);
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px;
+  width: 380px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-header h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #409eff;
+}
+
+.login-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #c0c4cc;
+}
+
+.login-btn {
+  width: 100%;
 }
 </style>

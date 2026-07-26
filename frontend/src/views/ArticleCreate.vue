@@ -12,7 +12,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="标签">
-          <el-select v-model="form.tagIds" placeholder="选择标签" multiple clearable>
+          <el-select v-model="form.tagIds" placeholder="选择标签（最多3个）" multiple clearable :multiple-limit="3">
             <el-option v-for="t in tags" :key="t.id" :label="t.tagName" :value="t.id" />
           </el-select>
         </el-form-item>
