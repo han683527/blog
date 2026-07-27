@@ -61,9 +61,9 @@
         <div v-else class="article-list">
           <div v-for="article in articles" :key="article.id" class="article-card" @click="$router.push('/article/' + article.id)">
             <h2>
-              <router-link :to="'/article/' + article.id" @click.stop>{{ article.title }}</router-link>
+              <router-link :to="'/article/' + article.id" @click.stop v-html="article.highlightTitle || article.title"></router-link>
             </h2>
-            <p class="content-preview">{{ article.content }}</p>
+            <p class="content-preview" v-html="article.highlightContent || article.content" />
             <div class="card-meta">
               <span v-if="getCategoryName(article.categoryId)" class="meta-tag category-tag">{{ getCategoryName(article.categoryId) }}</span>
               <span v-for="tagId in article.tags?.slice(0, 3)" :key="tagId" class="meta-tag tag-tag">{{ getTagName(tagId) }}</span>
@@ -291,24 +291,6 @@ function getTagName(id) {
   min-width: 0;
 }
 
-.list-header {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.list-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.list-count {
-  font-size: 13px;
-  color: #c0c4cc;
-}
-
 .status {
   text-align: center;
   color: #c0c4cc;
@@ -422,6 +404,13 @@ function getTagName(id) {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ===== 搜索高亮 ===== */
+.content-preview :deep(em),
+.article-card h2 :deep(em) {
+  color: #67c23a;
+  font-style: normal;
 }
 
 /* ===== 分页 ===== */

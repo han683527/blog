@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("Article_Like")
+@TableName("article_like")
 public class ArticleLike {
     private Long userId;
 

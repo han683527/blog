@@ -36,7 +36,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private final CategoryService categoryService;
     private final TagService tagService;
     private final ArticleTagService articleTagService;
-    private final LikeService likeService;
+    private final ArticleSearchService articleSearchService;
 
     public ArticleServiceImpl(StringRedisTemplate redisTemplate,
                               @Lazy CommentService commentService,
@@ -45,8 +45,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                               ArticleQueryService articleQueryService,
                               UserService userService,
                               TagService tagService,
-                              @Lazy LikeService likeService
-    ){
+                              ArticleSearchService articleSearchService){
         this.redisTemplate = redisTemplate;
         this.commentService = commentService;
         this.articleQueryService = articleQueryService;
@@ -54,7 +53,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         this.categoryService = categoryService;
         this.articleTagService = articleTagService;
         this.tagService = tagService;
-        this.likeService = likeService;
+        this.articleSearchService = articleSearchService;
     }
 
     @Override
@@ -98,11 +97,20 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             }
         }
 
+        // 存入 ES 库
+        articleSearchService.syncArticle(article);
         log.info("用户 {} 创建文章 {}", userId, title);
     }
 
     @Override
     public PageResponse<ArticleResponse> pageArticle(ArticleSearchRequest request) {
+        // 判断是否有关键词
+        if (request.getKeyword() != null && !request.getKeyword().isEmpty()) {
+            // 有关键词 -> 走 ES 搜索
+            return articleSearchService.search(request);
+        }
+
+        // 没有关键词 -> 按原有逻辑继续
         // 1.什么都不做 ; 2.模糊查找 ; 3.种类 ; 4.标签
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
 
@@ -201,6 +209,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         // 每次删除要删除缓存
         redisTemplate.delete("article:" + id);
+        // 从 ES 库中删去
+        articleSearchService.deleteArticle(id);
         log.info("删除缓存: article: {}", article);
     }
 
@@ -243,6 +253,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
+        // 更新存入 ES 库
+        articleSearchService.syncArticle(article);
         log.info("删除缓存: article: {}", id);
     }
 
@@ -262,6 +274,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         this.removeById(id);
         redisTemplate.delete("article:" + id);
+        // 从 ES库中删去
+        articleSearchService.deleteArticle(id);
         log.info("管理员删除文章: {}", id);
     }
 
@@ -309,6 +323,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
+        // 存入 Es 库
+        articleSearchService.syncArticle(article);
         log.info("删除缓存: article: {}", id);
     }
 

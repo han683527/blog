@@ -37,4 +37,8 @@ public class ArticleResponse {
     private Boolean isLike;
 
     private Boolean isCollect;
+
+    private String highlightTitle; //高亮后的标题
+
+    private String highlightContent; // 高亮后的正文
 }
