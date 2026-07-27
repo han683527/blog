@@ -41,4 +41,6 @@ public class ArticleResponse {
     private String highlightTitle; //高亮后的标题
 
     private String highlightContent; // 高亮后的正文
+
+    private int status;
 }

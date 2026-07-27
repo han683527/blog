@@ -27,7 +27,10 @@
               <div v-else>
                 <div v-for="article in articles" :key="article.id" class="list-item">
                   <div class="item-main" @click="$router.push('/article/' + article.id)">
-                    <div class="item-title">{{ article.title }}</div>
+                    <div class="item-title">
+                    {{ article.title }}
+                    <el-tag v-if="article.status === 0" size="small" type="warning">草稿</el-tag>
+                  </div>
                     <div class="item-meta">
                       <span>{{ article.createTime }}</span>
                       <span>评论 {{ article.commentCount }}</span>
@@ -35,6 +38,7 @@
                       <span>收藏 {{ article.collectCount }}</span>
                     </div>
                   </div>
+                  <el-button type="primary" size="small" text @click="$router.push('/edit/' + article.id)">编辑</el-button>
                   <el-button type="danger" size="small" text @click="handleDeleteArticle(article.id)">删除</el-button>
                 </div>
                 <div v-if="articles.length === 0" class="tab-status">还没有文章</div>

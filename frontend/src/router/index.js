@@ -43,6 +43,13 @@ const routes = [
       component: () => import('@/views/ArticleCreate.vue')
     },
 
+    // 编辑文章
+    {
+      path: '/edit/:id',
+      name: 'Edit',
+      component: () => import('@/views/ArticleCreate.vue')
+    },
+
     // 公开用户信息
     {
         path: '/user/:id',

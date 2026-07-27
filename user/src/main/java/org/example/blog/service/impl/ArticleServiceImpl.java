@@ -45,7 +45,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                               ArticleQueryService articleQueryService,
                               UserService userService,
                               TagService tagService,
-                              ArticleSearchService articleSearchService){
+                              ArticleSearchService articleSearchService) {
         this.redisTemplate = redisTemplate;
         this.commentService = commentService;
         this.articleQueryService = articleQueryService;
@@ -68,6 +68,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         article.setAuthorId(userId);
         article.setTitle(title);
         article.setContent(request.getContent());
+        article.setStatus(request.getStatus());
 
         // 判断分类是否存在
         if (request.getCategoryId() != null) {
@@ -97,8 +98,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             }
         }
 
-        // 存入 ES 库
-        articleSearchService.syncArticle(article);
+        // 根据发布状态决定是否存入 ES 库
+        if (request.getStatus() == 1) {
+            articleSearchService.syncArticle(article);
+        }
         log.info("用户 {} 创建文章 {}", userId, title);
     }
 
@@ -110,11 +113,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             return articleSearchService.search(request);
         }
 
+
         // 没有关键词 -> 按原有逻辑继续
         // 1.什么都不做 ; 2.模糊查找 ; 3.种类 ; 4.标签
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
 
-        // 模糊查找
+        // 模糊查找(搜索已用 ES 代替)
         String keyword = request.getKeyword();
         if (keyword != null && !keyword.isEmpty()) {
             log.info("关键词: {}", keyword);
@@ -139,6 +143,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         Long authorId = request.getAuthorId();
         if (authorId != null) {
             wrapper.eq(Article::getAuthorId, authorId);
+        }
+
+        // 只显示已发布的文章
+        if (authorId == null || !authorId.equals(UserContext.get())) {
+            wrapper.eq(Article::getStatus, 1);
         }
 
         wrapper.orderByDesc(Article::getViewCount);
@@ -185,6 +194,11 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new NotFoundException("文章不存在");
         }
 
+        // 草稿检查
+        if(article.getStatus()==0 && !article.getAuthorId().equals(UserContext.get())) {
+            throw new NotFoundException("文章不存在");
+        }
+
         // 3.写入缓存,并设置 TTL(定期过期,防止缓存没有被正常删除而导致脏数据)
         redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(article), 10, TimeUnit.MINUTES);
         log.info("写入缓存: {}", key);
@@ -224,6 +238,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         article.setTitle(request.getTitle());
         article.setContent(request.getContent());
+        article.setStatus(request.getStatus());
         if (request.getCategoryId() != null) {
             Category category = categoryService.getById(request.getCategoryId());
             if (category == null) {
@@ -253,8 +268,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
-        // 更新存入 ES 库
-        articleSearchService.syncArticle(article);
+        // 根据发布状态决定是否存入 ES 库
+        if (request.getStatus() == 1) {
+            articleSearchService.syncArticle(article);
+        }
         log.info("删除缓存: article: {}", id);
     }
 
@@ -291,6 +308,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         Article article = new Article();
         article.setId(id);
         article.setTitle(request.getTitle());
+        article.setStatus(request.getStatus());
 
         article.setContent(request.getContent());
         if (request.getCategoryId() != null) {
@@ -323,8 +341,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
-        // 存入 Es 库
-        articleSearchService.syncArticle(article);
+        // 根据发布状态决定是否存入 ES 库
+        if (request.getStatus() == 1) {
+            articleSearchService.syncArticle(article);
+        }
         log.info("删除缓存: article: {}", id);
     }
 

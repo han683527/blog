@@ -1,0 +1,1 @@
+alter table article add column status tinyint default 1 comment '0-草稿 1-已发布';

@@ -18,4 +18,6 @@ public class ArticleRequest{
     private Long categoryId;
 
     private List<Long> tagIds;
+
+    private int status;
 }

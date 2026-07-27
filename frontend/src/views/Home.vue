@@ -117,20 +117,25 @@ const selectTag = ref([])
 
 onMounted(async () => {
   try {
-    const [artRes, catRes, tagRes] = await Promise.all([
-      getArticles({page: 1, size: 10}),
-      getCategories({page: 1, size: 100}),
-      getTags({page: 1, size: 100})
-    ])
+    const artRes = await getArticles({page: 1, size: 10})
     articles.value = artRes.data.data.list
     total.value = artRes.data.data.total
+  } catch (e) {
+    console.error('加载文章失败', e)
+  }
+  try {
+    const catRes = await getCategories({page: 1, size: 100})
     categories.value = catRes.data.data.list
+  } catch (e) {
+    console.error('加载分类失败', e)
+  }
+  try {
+    const tagRes = await getTags({page: 1, size: 100})
     tags.value = tagRes.data.data.list
   } catch (e) {
-    console.error('加载失败', e)
-  } finally {
-    loading.value = false
+    console.error('加载标签失败', e)
   }
+  loading.value = false
 })
 
 async function loadArticles() {

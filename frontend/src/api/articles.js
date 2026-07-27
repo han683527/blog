@@ -15,3 +15,7 @@ export function createArticle(data) {
 export function deleteArticle(id) {
     return request.delete('/article/' + id)
 }
+
+export function updateArticle(data) {
+    return request.put('/article', data)
+}
