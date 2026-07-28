@@ -44,4 +44,7 @@ public class ArticleDocument {
 
     @Field(type = FieldType.Keyword)
     private String tags;
+
+    @Field(type = FieldType.Integer)
+    private Integer status;
 }

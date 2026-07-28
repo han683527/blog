@@ -40,6 +40,7 @@ public class ArticleSearchServiceImpl implements ArticleSearchService {
         doc.setAuthorId(article.getAuthorId());
         doc.setCategoryId(article.getCategoryId());
         doc.setViewCount(article.getViewCount());
+        doc.setStatus(article.getStatus());
         articleSearchRepository.save(doc);
     }
 
@@ -83,13 +84,15 @@ public class ArticleSearchServiceImpl implements ArticleSearchService {
             queryBuilder.withHighlightQuery(new HighlightQuery(highlight, null));
         }
 
-        // 按浏览量降序
-        queryBuilder.withSort(s -> s    // Sort 构造器
-                .field(f -> f           // FieldSort 构造器
-                        .field("viewCount")
-                        .order(SortOrder.Desc)
-                )
-        );
+        // 按浏览量降序,无关键词时按浏览量排序,有关键词是按相关度排序
+        if (keyword == null || keyword.isEmpty()) {
+            queryBuilder.withSort(s -> s    // Sort 构造器
+                    .field(f -> f           // FieldSort 构造器
+                            .field("viewCount")
+                            .order(SortOrder.Desc)
+                    )
+            );
+        }
 
         NativeQuery query = queryBuilder.build();
         SearchHits<ArticleDocument> searchHits = elasticsearchTemplate.search(query, ArticleDocument.class);

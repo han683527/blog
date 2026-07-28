@@ -100,6 +100,13 @@ public class ArticleQueryService {
             response.setIsCollect(collectedIds.contains(response.getId()));
             response.setCommentCount(commentCountMap.getOrDefault(response.getId(), 0L));
         }
+
+        // 批量查最新浏览量（ES 中的 viewCount 可能已过时）
+        Map<Long, Long> viewCountMap = articleService.listByIds(articleIds).stream()
+                .collect(Collectors.toMap(Article::getId, a -> a.getViewCount() == null ? 0L : a.getViewCount()));
+        for (ArticleResponse response : list) {
+            response.setViewCount(viewCountMap.getOrDefault(response.getId(), 0L));
+        }
     }
 
     public ArticleResponse buildArticleResponse(Article article, String key) {

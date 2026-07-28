@@ -236,6 +236,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new ForbiddenException("不能修改别人的文章");
         }
 
+        int oldStatus = article.getStatus(); // 获取上一次编辑状态
+
         article.setTitle(request.getTitle());
         article.setContent(request.getContent());
         article.setStatus(request.getStatus());
@@ -269,7 +271,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
         // 根据发布状态决定是否存入 ES 库
-        if (request.getStatus() == 1) {
+        if(oldStatus == 1 && request.getStatus() == 0) { // 防止 ES 能查到某篇文章之前已发布但目前在草稿
+            articleSearchService.deleteArticle(id);
+        } else if (request.getStatus() == 1) {
             articleSearchService.syncArticle(article);
         }
         log.info("删除缓存: article: {}", id);
@@ -305,8 +309,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             throw new NotFoundException("文章不存在");
         }
 
-        Article article = new Article();
-        article.setId(id);
+        Article article = this.getOptById(id).orElseThrow(() -> new NotFoundException("文章不存在"));
+        int oldStatus = article.getStatus();
+
         article.setTitle(request.getTitle());
         article.setStatus(request.getStatus());
 
@@ -342,7 +347,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         // 每次更新要删除缓存
         redisTemplate.delete("article:" + id);
         // 根据发布状态决定是否存入 ES 库
-        if (request.getStatus() == 1) {
+        if (oldStatus == 1 && request.getStatus() == 0) {
+            articleSearchService.deleteArticle(id);
+        } else if (request.getStatus() == 1) {
             articleSearchService.syncArticle(article);
         }
         log.info("删除缓存: article: {}", id);
