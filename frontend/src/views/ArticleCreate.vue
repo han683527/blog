@@ -17,7 +17,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="正文">
-          <el-input v-model="form.content" type="textarea" :rows="15" placeholder="写点什么..."/>
+          <div id="vditor"></div>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSubmit(1)">{{ isEdit ? '保存修改' : '发布' }}</el-button>
@@ -36,6 +36,8 @@ import { createArticle, updateArticle, getArticle } from '@/api/articles'
 import { getCategories } from '@/api/category'
 import { getTags } from '@/api/tag'
 import { ElMessage } from "element-plus";
+import Vditor from 'vditor'
+import 'vditor/dist/index.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,6 +45,7 @@ const isEdit = computed(() => !!route.params.id)
 const form = ref({})
 const categories = ref([])
 const tags = ref([])
+let vditor = null
 
 onMounted (async () => {
   try {
@@ -64,26 +67,57 @@ onMounted (async () => {
       form.value = {
         id: article.id,
         title: article.title,
-        content: article.content,
         categoryId: article.categoryId,
         tagIds: article.tags || []
       }
+      initVditor(article.content)
     } catch (e) {
       ElMessage.error('加载文章失败')
       router.push('/')
     }
+  } else {
+    initVditor('')
   }
 })
+
+function initVditor(content) {
+  const isDark = document.documentElement.classList.contains('dark')
+  vditor = new Vditor('vditor', {
+    height: 500,
+    cache: { enable: false },
+    theme: isDark ? 'dark' : 'classic',
+    value: content,
+    upload: {
+      handler: async (files) => {
+        const formData = new FormData()
+        formData.append('file', files[0])
+        const res = await fetch('/article/image', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
+          },
+          body: formData
+        })
+        const json = await res.json()
+        if (json.code === 200 && json.data) {
+          vditor.insertValue('![](' + json.data + ')')
+        }
+      }
+    }
+  })
+}
 
 async function handleSubmit(status) {
   if (!form.value.title) {
     ElMessage.warning('请填写标题')
     return
   }
-  if (status === 1 && !form.value.content) {
+  const content = vditor?.getValue() || ''
+  if (status === 1 && !content) {
     ElMessage.warning('请填写正文')
     return
   }
+  form.value.content = content
   form.value.status = status
   try {
     if (isEdit.value) {
@@ -107,8 +141,38 @@ async function handleSubmit(status) {
   margin-top: 40px;
 }
 .create-card {
-  width: 800px;
+  width: 900px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
+}
+
+.create-card h2 {
+  color: var(--text-primary);
+}
+
+.create-card :deep(.vditor) {
+  text-align: left;
+}
+
+.create-card :deep(.vditor-reset) {
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.create-card :deep(.vditor-reset h1),
+.create-card :deep(.vditor-reset h2),
+.create-card :deep(.vditor-reset h3),
+.create-card :deep(.vditor-reset h4),
+.create-card :deep(.vditor-reset h5),
+.create-card :deep(.vditor-reset h6) {
+  color: var(--text-primary);
+}
+
+.create-card :deep(.vditor-reset img) {
+  max-width: 400px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px auto;
 }
 </style>

@@ -60,10 +60,11 @@
         </div>
         <div v-else class="article-list">
           <div v-for="article in articles" :key="article.id" class="article-card" @click="$router.push('/article/' + article.id)">
+            <img v-if="getFirstImage(article.content)" :src="getFirstImage(article.content)" class="card-img" />
             <h2>
               <router-link :to="'/article/' + article.id" @click.stop v-html="article.highlightTitle || article.title"></router-link>
             </h2>
-            <p class="content-preview" v-html="article.highlightContent || article.content" />
+            <p class="content-preview" v-html="article.highlightContent || stripMarkdown(article.content)" />
             <div class="card-meta">
               <span v-if="getCategoryName(article.categoryId)" class="meta-tag category-tag">{{ getCategoryName(article.categoryId) }}</span>
               <span v-for="tagId in article.tags?.slice(0, 3)" :key="tagId" class="meta-tag tag-tag">{{ getTagName(tagId) }}</span>
@@ -189,6 +190,23 @@ function getCategoryName(id) {
 function getTagName(id) {
   const t = tags.value.find(t => t.id === id)
   return t ? t.tagName : ''
+}
+
+function getFirstImage(md) {
+  if (!md) return ''
+  const m = md.match(/!\[.*?\]\((.*?)\)/)
+  return m ? m[1] : ''
+}
+
+function stripMarkdown(md) {
+  if (!md) return ''
+  return md
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]*)\]\(.*?\)/g, '$1')
+    .replace(/[#*`~>]{1,}/g, '')
+    .replace(/---+/g, '')
+    .replace(/\n{2,}/g, ' ')
+    .trim()
 }
 </script>
 
@@ -329,6 +347,14 @@ function getTagName(id) {
   width: 480px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, background 0.3s, border-color 0.3s;
+}
+
+.card-img {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
 }
 
 .article-card:hover {

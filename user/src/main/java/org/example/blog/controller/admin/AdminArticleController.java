@@ -26,11 +26,5 @@ public class AdminArticleController {
     public Result<PageResponse<ArticleResponse>> adminPageArticle(@RequestBody ArticleSearchRequest request) {
         return Result.success(articleService.adminPageArticle(request));
     }
-
-    @PutMapping
-    public Result<String> adminUpdateArticle(@RequestBody ArticleRequest request){
-        articleService.adminUpdateArticle(request);
-        return Result.success("修改成功");
-    }
 }
 

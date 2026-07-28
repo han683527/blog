@@ -8,7 +8,9 @@ import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.dto.response.Result;
 import org.example.blog.service.ArticleService;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
@@ -44,5 +46,10 @@ public class ArticleController {
     public Result<String> updateArticleById(@Valid @RequestBody ArticleRequest request) {
         articleService.updateArticleById(request);
         return Result.success("修改成功");
+    }
+
+    @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<String> uploadImage(MultipartFile file) {
+        return Result.success(articleService.uploadImage(file));
     }
 }

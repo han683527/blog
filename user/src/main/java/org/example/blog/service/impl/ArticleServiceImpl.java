@@ -20,6 +20,7 @@ import org.example.blog.util.UserContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private final TagService tagService;
     private final ArticleTagService articleTagService;
     private final ArticleSearchService articleSearchService;
+    private final UploadService uploadService;
 
     public ArticleServiceImpl(StringRedisTemplate redisTemplate,
                               @Lazy CommentService commentService,
@@ -45,7 +47,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                               ArticleQueryService articleQueryService,
                               UserService userService,
                               TagService tagService,
-                              ArticleSearchService articleSearchService) {
+                              ArticleSearchService articleSearchService, UploadService uploadService) {
         this.redisTemplate = redisTemplate;
         this.commentService = commentService;
         this.articleQueryService = articleQueryService;
@@ -54,6 +56,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         this.articleTagService = articleTagService;
         this.tagService = tagService;
         this.articleSearchService = articleSearchService;
+        this.uploadService = uploadService;
     }
 
     @Override
@@ -301,61 +304,6 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     @Override
-    public void adminUpdateArticle(ArticleRequest request) {
-        userService.checkAdmin();
-        // 获取文章 id
-        Long id = request.getId();
-        if (id == null) {
-            throw new NotFoundException("文章不存在");
-        }
-
-        Article article = this.getOptById(id).orElseThrow(() -> new NotFoundException("文章不存在"));
-        int oldStatus = article.getStatus();
-
-        article.setTitle(request.getTitle());
-        article.setStatus(request.getStatus());
-
-        article.setContent(request.getContent());
-        if (request.getCategoryId() != null) {
-            Category category = categoryService.getById(request.getCategoryId());
-            if (category == null) {
-                throw new NotFoundException("分类不存在");
-            }
-            article.setCategoryId(request.getCategoryId());
-        }
-        this.updateById(article);
-
-        LambdaQueryWrapper<ArticleTag> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ArticleTag::getArticleId, id);
-        // 更新方式:先删除再插入
-
-        articleTagService.remove(wrapper);
-        List<Long> tagIds = request.getTagIds();
-        if (tagIds != null && !tagIds.isEmpty()) {
-            List<Tag> tags = tagService.listByIds(tagIds);
-            if (tags.size() != tagIds.size()) {
-                throw new NotFoundException("部分标签不存在");
-            }
-            for (Long tagId : tagIds) {
-                ArticleTag articleTag = new ArticleTag();
-                articleTag.setArticleId(article.getId());
-                articleTag.setTagId(tagId);
-                articleTagService.save(articleTag);
-            }
-        }
-
-        // 每次更新要删除缓存
-        redisTemplate.delete("article:" + id);
-        // 根据发布状态决定是否存入 ES 库
-        if (oldStatus == 1 && request.getStatus() == 0) {
-            articleSearchService.deleteArticle(id);
-        } else if (request.getStatus() == 1) {
-            articleSearchService.syncArticle(article);
-        }
-        log.info("删除缓存: article: {}", id);
-    }
-
-    @Override
     public PageResponse<ArticleResponse> adminPageArticle(ArticleSearchRequest request) {
         userService.checkAdmin();
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
@@ -365,5 +313,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         response.setTotal(p.getTotal());
         response.setList(list);
         return response;
+    }
+
+    @Override
+    public String uploadImage(MultipartFile file) {
+        return uploadService.upload(file);
     }
 }

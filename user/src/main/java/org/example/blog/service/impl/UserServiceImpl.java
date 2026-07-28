@@ -11,6 +11,7 @@ import org.example.blog.exception.BadRequestException;
 import org.example.blog.exception.ForbiddenException;
 import org.example.blog.exception.NotFoundException;
 import org.example.blog.mapper.UserMapper;
+import org.example.blog.service.UploadService;
 import org.example.blog.service.UserService;
 import org.example.blog.util.UserContext;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,8 +30,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    @Value("${upload.path}")
-    private String uploadPath;
+    private final UploadService uploadService;
 
     public void updateProfile(UpdateUserRequest request) {
         Long userId = UserContext.get();
@@ -55,30 +55,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public String uploadAvatar(MultipartFile file) {
-        // 1. 校验文件类型
-        String contentType = file.getContentType();
-        if(contentType == null || !contentType.contains("image/")) {
-            throw new BadRequestException("只能上传图片文件");
-        }
-
-        // 2. 生成文件名
-        String suffix = "." + StringUtils.getFilenameExtension(file.getOriginalFilename());
-        String fileName = UUID.randomUUID() + suffix;
-
-        // 3. 保存文件
-        try{
-            Files.createDirectories(Paths.get(uploadPath));
-            file.transferTo(new File(uploadPath, fileName));
-        } catch (IOException e){
-            throw new RuntimeException("上传失败", e);
-        }
-
-        // 4. 更新用户头像字段
-        String url = "/upload/" +  fileName;
+        // 更新用户头像字段
+        String url = uploadService.upload(file);
         User user = this.getById(UserContext.get());
         user.setAvatar(url);
         this.updateById(user);
-
         return url;
     }
 

@@ -20,7 +20,7 @@
       </div>
 
       <!-- 正文 -->
-      <div class="article-content" v-html="article.content" />
+      <div class="article-content" v-html="renderedContent" />
 
       <!-- 点赞/收藏 -->
       <div class="action-bar" v-if="user">
@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onUnmounted} from "vue"
+import {ref, computed, onMounted, onUnmounted} from "vue"
 import {useRoute, useRouter} from "vue-router"
 import {getUser} from "@/api/user"
 import {getArticle} from "@/api/articles"
@@ -67,6 +67,18 @@ import {getComments, addComment, deleteComment} from "@/api/comment"
 import {ElMessage, ElMessageBox} from "element-plus"
 import {toggleLike} from "@/api/like"
 import {toggleCollect} from "@/api/collect"
+import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
+
+marked.setOptions({
+  highlight: (code, lang) => {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value
+    }
+    return hljs.highlightAuto(code).value
+  }
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -164,6 +176,10 @@ onUnmounted(() => {
   window.removeEventListener('sse-comment', onSseComment)
   window.removeEventListener('sse-notification', onSseNotification)
 })
+
+const renderedContent = computed(() => {
+  return article.value.content ? marked(article.value.content) : ''
+})
 </script>
 
 <style scoped>
@@ -246,15 +262,26 @@ onUnmounted(() => {
   text-align: left;
 }
 
+.article-content :deep(h1),
+.article-content :deep(h2),
+.article-content :deep(h3),
+.article-content :deep(h4),
+.article-content :deep(h5),
+.article-content :deep(h6) {
+  color: var(--text-primary);
+}
+
 .article-content :deep(p) {
   margin: 16px 0;
 }
 
 .article-content :deep(img) {
-  max-width: 100%;
+  max-width: 400px;
+  width: 100%;
   height: auto;
+  display: block;
+  margin: 12px auto;
   border-radius: 8px;
-  margin: 12px 0;
 }
 
 .article-content :deep(blockquote) {

@@ -7,6 +7,7 @@ import org.example.blog.dto.request.PageRequest;
 import org.example.blog.dto.response.ArticleResponse;
 import org.example.blog.dto.response.PageResponse;
 import org.example.blog.entity.Article;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -33,6 +34,6 @@ public interface ArticleService extends IService<Article> {
     // 后台管理分页查询
     PageResponse<ArticleResponse> adminPageArticle(ArticleSearchRequest request);
 
-    // 后台管理修改
-    void adminUpdateArticle(ArticleRequest request);
+    // 富文本编辑(图片上传)
+    String uploadImage(MultipartFile file);
 }
