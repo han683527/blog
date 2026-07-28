@@ -208,20 +208,20 @@ function getTagName(id) {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 24px;
   padding: 4px 4px 4px 16px;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: box-shadow 0.2s, border-color 0.2s, background 0.3s;
 }
 
 .search-inner:focus-within {
-  border-color: #409eff;
+  border-color: var(--link-color);
   box-shadow: 0 0 0 3px rgba(64,158,255,0.12);
 }
 
 .search-icon {
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   display: flex;
 }
 
@@ -251,10 +251,11 @@ function getTagName(id) {
 }
 
 .filter-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 10px;
   padding: 16px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-color);
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .filter-section {
@@ -267,7 +268,7 @@ function getTagName(id) {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #606266;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
@@ -283,7 +284,7 @@ function getTagName(id) {
 
 .filter-empty {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
 }
 
 .filter-card :deep(.el-divider) {
@@ -298,7 +299,7 @@ function getTagName(id) {
 
 .status {
   text-align: center;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   padding: 60px 0;
 }
 
@@ -320,14 +321,14 @@ function getTagName(id) {
 
 /* ===== 文章卡片 ===== */
 .article-card {
-  background: #fff;
-  border: 1px solid #ebeef5;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 10px;
   width: 480px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s, border-color 0.3s;
 }
 
 .article-card:hover {
@@ -343,7 +344,7 @@ function getTagName(id) {
 
 .article-card a {
   text-decoration: none;
-  color: #303133;
+  color: var(--text-primary);
   transition: color 0.2s;
   display: block;
   overflow: hidden;
@@ -352,7 +353,7 @@ function getTagName(id) {
 }
 
 .article-card a:hover {
-  color: #409eff;
+  color: var(--link-color);
 }
 
 .content-preview {
@@ -361,7 +362,7 @@ function getTagName(id) {
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 13px;
-  color: #909399;
+  color: var(--text-muted);
   margin: 0 0 10px;
   line-height: 1.6;
   text-align: left;
@@ -395,14 +396,14 @@ function getTagName(id) {
   align-items: center;
   gap: 14px;
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
 }
 
 .author-text {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #909399;
+  color: var(--text-muted);
 }
 
 .meta-item {
@@ -414,7 +415,7 @@ function getTagName(id) {
 /* ===== 搜索高亮 ===== */
 .content-preview :deep(em),
 .article-card h2 :deep(em) {
-  color: #67c23a;
+  color: red;
   font-style: normal;
 }
 

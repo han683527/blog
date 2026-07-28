@@ -108,5 +108,7 @@ async function handleSubmit(status) {
 }
 .create-card {
   width: 800px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
 }
 </style>

@@ -314,10 +314,21 @@ async function handleDeleteComment(id) {
 }
 
 .profile-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 10px;
   padding: 24px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--border-color);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.content-card {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .avatar-section {
@@ -375,12 +386,12 @@ async function handleDeleteComment(id) {
 .avatar-section h3 {
   margin: 0;
   font-size: 16px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .email {
   font-size: 13px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
 }
 
 .profile-card :deep(.el-divider) {
@@ -399,22 +410,13 @@ async function handleDeleteComment(id) {
   width: 500px;
 }
 
-.content-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 24px;
-  border: 1px solid #ebeef5;
-  width: 100%;
-  box-sizing: border-box;
-}
-
 .profile-tabs :deep(.el-tabs__header) {
   margin-bottom: 16px;
 }
 
 .tab-status {
   text-align: center;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   padding: 40px 0;
   font-size: 14px;
 }
@@ -425,7 +427,7 @@ async function handleDeleteComment(id) {
   align-items: center;
   gap: 12px;
   padding: 14px 0;
-  border-bottom: 1px solid #f0f4f8;
+  border-bottom: 1px solid var(--border-divider);
   width: 100%;
   box-sizing: border-box;
 }
@@ -443,7 +445,7 @@ async function handleDeleteComment(id) {
 .item-title {
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -451,12 +453,12 @@ async function handleDeleteComment(id) {
 }
 
 .item-main:hover .item-title {
-  color: #409eff;
+  color: var(--link-color);
 }
 
 .item-meta {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   margin-top: 4px;
 }
 
@@ -466,7 +468,7 @@ async function handleDeleteComment(id) {
 
 .comment-cell {
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -6,6 +6,10 @@
         <router-link to="/" class="nav-link">首页</router-link>
       </div>
       <div class="nav-right">
+        <el-button size="small" circle @click="$emit('toggleDark')" class="theme-btn">
+          <svg v-if="isDark" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3c.46 0 .93.04 1.38.14 1.12.25 2.14.73 3.02 1.38a7.006 7.006 0 0 0-3.4 13.04 7 7 0 0 0 5.4 1.14 7.94 7.94 0 0 1-3.4.41A7.04 7.04 0 0 1 5 12a7.04 7.04 0 0 1 7-7z"/></svg>
+          <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 0 0 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+        </el-button>
         <template v-if="!user">
           <router-link to="/login">
             <el-button type="primary" size="small" round>登录</el-button>
@@ -63,6 +67,9 @@ import {useRouter, useRoute} from 'vue-router'
 import {getUser} from '@/api/user'
 import {getNotifications, markAsRead, markAllAsRead, getUnreadCount} from "@/api/notifications"
 import {logout} from '@/api/auth'
+
+defineProps({ isDark: Boolean })
+defineEmits(['toggleDark'])
 
 const router = useRouter()
 const route = useRoute()
@@ -155,11 +162,12 @@ async function handleMarkAllAsRead() {
 
 <style scoped>
 .navbar {
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  background: var(--bg-navbar);
+  border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 200;
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .nav-inner {
@@ -182,19 +190,19 @@ async function handleMarkAllAsRead() {
   font-size: 20px;
   font-weight: 700;
   text-decoration: none;
-  color: #409eff;
+  color: var(--link-color);
   letter-spacing: 1px;
 }
 
 .nav-link {
   text-decoration: none;
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 14px;
   transition: color 0.2s;
 }
 
 .nav-link:hover {
-  color: #409eff;
+  color: var(--link-color);
 }
 
 .nav-right {
@@ -228,7 +236,7 @@ async function handleMarkAllAsRead() {
 .nickname {
   font-size: 14px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 /* 通知面板 */
@@ -244,14 +252,14 @@ async function handleMarkAllAsRead() {
   padding: 0 12px 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
-  border-bottom: 1px solid #f0f4f8;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-divider);
 }
 
 .notification-item {
   padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f4f8;
+  border-bottom: 1px solid var(--border-divider);
 }
 
 .notification-item:last-child {
@@ -265,32 +273,36 @@ async function handleMarkAllAsRead() {
 }
 
 .notification-item:hover {
-  background: #f8faff;
+  background: var(--bg-hover);
 }
 
 .notification-content {
   font-size: 13px;
-  color: #606266;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .notification-title {
   display: block;
-  color: #409eff;
+  color: var(--link-color);
   font-size: 12px;
   margin-top: 2px;
 }
 
 .notification-time {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   margin-top: 2px;
 }
 
 .empty {
   text-align: center;
-  color: #c0c4cc;
+  color: var(--text-placeholder);
   padding: 30px 0;
   font-size: 13px;
+}
+
+.theme-btn {
+  font-size: 18px;
 }
 </style>
