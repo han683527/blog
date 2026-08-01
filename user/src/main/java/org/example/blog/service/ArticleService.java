@@ -36,4 +36,7 @@ public interface ArticleService extends IService<Article> {
 
     // 富文本编辑(图片上传)
     String uploadImage(MultipartFile file);
+
+    // 文章推荐
+    List<ArticleResponse> recommend(int size);
 }

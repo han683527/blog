@@ -39,6 +39,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private final ArticleTagService articleTagService;
     private final ArticleSearchService articleSearchService;
     private final UploadService uploadService;
+    private final ViewHistoryService viewHistoryService;
+    private final ArticleRecommendService articleRecommendService;
 
     public ArticleServiceImpl(StringRedisTemplate redisTemplate,
                               @Lazy CommentService commentService,
@@ -47,7 +49,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                               ArticleQueryService articleQueryService,
                               UserService userService,
                               TagService tagService,
-                              ArticleSearchService articleSearchService, UploadService uploadService) {
+                              ArticleSearchService articleSearchService,
+                              UploadService uploadService,
+                              ViewHistoryService viewHistoryService, @Lazy ArticleRecommendService articleRecommendService) {
         this.redisTemplate = redisTemplate;
         this.commentService = commentService;
         this.articleQueryService = articleQueryService;
@@ -57,6 +61,8 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         this.tagService = tagService;
         this.articleSearchService = articleSearchService;
         this.uploadService = uploadService;
+        this.viewHistoryService = viewHistoryService;
+        this.articleRecommendService = articleRecommendService;
     }
 
     @Override
@@ -175,6 +181,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     }
 
     public ArticleResponse getArticleById(Long id) {
+        Article article = this.getById(id);
+
+        // 在查缓存或数据库之前进行记录
+        if (article != null && article.getStatus() == 1 && UserContext.get() != null) {
+            viewHistoryService.record(UserContext.get(), id);
+        }
+
         // 1.先查缓存
         String key = "article:" + id; // 定义一个存取的钥匙
         String cached = redisTemplate.opsForValue().get(key);
@@ -184,14 +197,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                 throw new NotFoundException("文章不存在");
             }
             // 缓存命中后应将缓存 JSON 反序列化为 Article
-            Article article = JSONUtil.toBean(cached, Article.class);
+            article = JSONUtil.toBean(cached, Article.class);
 
             return articleQueryService.buildArticleResponse(article, key);
         }
 
         // 2.缓存没有,查数据库
-        Article article = this.getById(id);
-        if (article == null) {
+         if (article == null) {
             redisTemplate.opsForValue().set(key, "NULL", 1, TimeUnit.MINUTES);
             log.info("写入空值缓存(防穿透): {}", key);
             throw new NotFoundException("文章不存在");
@@ -318,5 +330,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Override
     public String uploadImage(MultipartFile file) {
         return uploadService.upload(file);
+    }
+
+    @Override
+    public List<ArticleResponse> recommend(int size) {
+        return articleRecommendService.recommend(size);
     }
 }

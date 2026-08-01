@@ -12,6 +12,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/article")
@@ -51,5 +53,10 @@ public class ArticleController {
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<String> uploadImage(MultipartFile file) {
         return Result.success(articleService.uploadImage(file));
+    }
+
+    @PostMapping("/recommend")
+    public Result<List<ArticleResponse>> recommend() {
+        return Result.success(articleService.recommend(8));
     }
 }
