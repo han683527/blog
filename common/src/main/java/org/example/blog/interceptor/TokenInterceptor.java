@@ -48,4 +48,10 @@ public class TokenInterceptor implements HandlerInterceptor {
             return false;
         }
     }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 清理 ThreadLocal,防止 Tomcat 线程复用时 userId 残留到下一个请求
+        UserContext.remove();
+    }
 }

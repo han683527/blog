@@ -30,7 +30,7 @@
 
 <script setup>
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createArticle, updateArticle, getArticle } from '@/api/articles'
 import { getCategories } from '@/api/category'
@@ -46,8 +46,10 @@ const form = ref({})
 const categories = ref([])
 const tags = ref([])
 let vditor = null
+let isMounted = false
 
 onMounted (async () => {
+  isMounted = true
   try {
     const catRes = await getCategories({ page: 1, size: 100 })
     categories.value = catRes.data.data.list
@@ -80,7 +82,44 @@ onMounted (async () => {
   }
 })
 
+onUnmounted(() => {
+  isMounted = false
+  vditor?.destroy()
+  vditor = null
+})
+
+// /create 和 /edit/:id 共用同一个组件,路由切换时组件会被复用、onMounted 不会再次执行
+// 监听路由参数,切换文章时重新加载编辑器内容
+watch(() => route.params.id, async (id) => {
+  if (!id) {
+    form.value = {}
+    initVditor('')
+    return
+  }
+  try {
+    const res = await getArticle(id)
+    const article = res.data.data
+    form.value = {
+      id: article.id,
+      title: article.title,
+      categoryId: article.categoryId,
+      tagIds: article.tags || []
+    }
+    initVditor(article.content)
+  } catch (e) {
+    ElMessage.error('加载文章失败')
+    router.push('/')
+  }
+})
+
 function initVditor(content) {
+  // 组件已卸载就不初始化,避免操作不存在的 DOM
+  if (!isMounted) return
+  // 防止重复初始化(路由复用/HMR 热更新),先销毁旧的
+  if (vditor) {
+    vditor.destroy()
+    vditor = null
+  }
   const isDark = document.documentElement.classList.contains('dark')
   vditor = new Vditor('vditor', {
     height: 500,

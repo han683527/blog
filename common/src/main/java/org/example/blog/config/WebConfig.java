@@ -27,7 +27,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/public/{id}",
                         "/notification/subscribe",
                         "/auth/**",
-                        "/article/list",
                         "/comment/list",
                         "/tag/**",
                         "/category/**",
