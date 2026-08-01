@@ -19,3 +19,7 @@ export function deleteArticle(id) {
 export function updateArticle(data) {
     return request.put('/article', data)
 }
+
+export function getRecommend() {
+    return request.post('/article/recommend')
+}

@@ -38,6 +38,28 @@
             </div>
           </div>
         </div>
+
+        <!-- 推荐位 -->
+        <div class="filter-card recommend-card">
+          <div class="filter-section">
+            <div class="filter-header">
+              <el-icon><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></el-icon>
+              <span>为你推荐</span>
+            </div>
+            <div v-if="recommends.length === 0" class="filter-empty">暂无推荐</div>
+            <div v-else class="recommend-list">
+              <div
+                v-for="(article, index) in recommends.slice(0, 8)"
+                :key="article.id"
+                class="recommend-item"
+                @click="$router.push('/article/' + article.id)"
+              >
+                <span class="recommend-index" :class="{ hot: index < 3 }">{{ index + 1 }}</span>
+                <span class="recommend-title">{{ article.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 右侧文章列表 -->
@@ -102,11 +124,12 @@
 
 <script setup>
 import {ref, onMounted} from 'vue'
-import {getArticles} from '@/api/articles'
+import {getArticles, getRecommend} from '@/api/articles'
 import {getCategories} from '@/api/category'
 import {getTags} from '@/api/tag'
 
 const articles = ref([])
+const recommends = ref([])
 const loading = ref(true)
 const total = ref(0)
 const currentPage = ref(1)
@@ -135,6 +158,13 @@ onMounted(async () => {
     tags.value = tagRes.data.data.list
   } catch (e) {
     console.error('加载标签失败', e)
+  }
+  // 推荐(游客/新用户返回热门,有行为返回个性化),失败静默不阻塞首页
+  try {
+    const recRes = await getRecommend()
+    recommends.value = recRes.data.data || []
+  } catch (e) {
+    console.error('加载推荐失败', e)
   }
   loading.value = false
 })
@@ -307,6 +337,58 @@ function stripMarkdown(md) {
 
 .filter-card :deep(.el-divider) {
   margin: 12px 0;
+}
+
+/* ===== 推荐位 ===== */
+.recommend-card {
+  margin-top: 12px;
+}
+
+.recommend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recommend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.recommend-item:hover {
+  background: var(--bg-hover);
+}
+
+.recommend-index {
+  flex-shrink: 0;
+  min-width: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-placeholder);
+}
+
+.recommend-index.hot {
+  color: var(--link-color);
+}
+
+.recommend-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recommend-item:hover .recommend-title {
+  color: var(--link-color);
 }
 
 /* ===== 右侧 ===== */
