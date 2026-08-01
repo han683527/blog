@@ -77,6 +77,9 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
 
     @Override
     public PageResponse<TagResponse> adminPageTag(PageRequest request) {
+        // 权限判断
+        userService.checkAdmin();
+
         Page<Tag> p = this.page(new Page<>(request.getPage(), request.getSize()));
         List<TagResponse> list = BeanUtil.copyToList(p.getRecords(), TagResponse.class);
         PageResponse<TagResponse> response = new PageResponse<>();
@@ -88,9 +91,6 @@ public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagSe
     // todo 处理标签多的情况
     @Override
     public PageResponse<TagResponse> pageTag(PageRequest request) {
-        // 权限判断
-        userService.checkAdmin();
-
         Page<Tag> p = this.page(new Page<>(request.getPage(), request.getSize()));
         List<TagResponse> list = BeanUtil.copyToList(p.getRecords(), TagResponse.class);
         PageResponse<TagResponse> response = new PageResponse<>();
