@@ -39,3 +39,10 @@ note
 uploads
 
 /CLAUDE.md
+
+# 部署产物(二进制/敏感,不提交)
+deploy/.env
+deploy/backend/app.jar
+deploy/nginx/dist/
+deploy/es/analysis-ik/
+deploy/es/config-analysis-ik/

@@ -1,6 +1,7 @@
 package org.example.blog.config;
 
 import org.example.blog.interceptor.TokenInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -12,6 +13,10 @@ public class WebConfig implements WebMvcConfigurer {
 
     //获取
     private final TokenInterceptor tokenInterceptor;
+
+    //上传目录(从配置读取,便于生产环境切换路径)
+    @Value("${upload.path}")
+    private String uploadPath;
 
     //注入
     public WebConfig(TokenInterceptor tokenInterceptor) {
@@ -51,7 +56,12 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 目录路径需以分隔符结尾,否则 Spring 资源处理器不把它当目录
+        String location = "file:" + uploadPath;
+        if (!location.endsWith("/") && !location.endsWith("\\")) {
+            location += "/";
+        }
         registry.addResourceHandler("/upload/**")
-                .addResourceLocations("file:D:\\java\\blog\\uploads\\");
+                .addResourceLocations(location);
     }
 }
