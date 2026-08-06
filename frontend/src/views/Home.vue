@@ -82,7 +82,9 @@
         </div>
         <div v-else class="article-list">
           <div v-for="article in articles" :key="article.id" class="article-card" @click="$router.push('/article/' + article.id)">
-            <img v-if="getFirstImage(article.content)" :src="getFirstImage(article.content)" class="card-img" />
+            <div v-if="getImages(article.content).length" class="card-imgs">
+              <img v-for="img in getImages(article.content).slice(0, 3)" :key="img" :src="img" class="card-img" />
+            </div>
             <h2>
               <router-link :to="'/article/' + article.id" @click.stop v-html="article.highlightTitle || article.title"></router-link>
             </h2>
@@ -222,10 +224,15 @@ function getTagName(id) {
   return t ? t.tagName : ''
 }
 
-function getFirstImage(md) {
-  if (!md) return ''
-  const m = md.match(/!\[.*?\]\((.*?)\)/)
-  return m ? m[1] : ''
+function getImages(md) {
+  if (!md) return []
+  const urls = []
+  const re = /!\[.*?\]\((.*?)\)/g
+  let m
+  while ((m = re.exec(md)) !== null) {
+    if (m[1]) urls.push(m[1])
+  }
+  return urls
 }
 
 function stripMarkdown(md) {
@@ -431,12 +438,20 @@ function stripMarkdown(md) {
   transition: transform 0.2s, box-shadow 0.2s, background 0.3s, border-color 0.3s;
 }
 
-.card-img {
-  width: 100%;
-  max-height: 160px;
-  object-fit: cover;
-  border-radius: 6px;
+.card-imgs {
+  display: flex;
+  gap: 6px;
+  height: 160px;
   margin-bottom: 10px;
+  overflow: hidden;
+}
+.card-img {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 6px;
 }
 
 .article-card:hover {
