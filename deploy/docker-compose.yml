@@ -1,0 +1,104 @@
+# 生产部署编排:mysql + redis + es(IK) + backend + nginx
+# 用法: docker compose up -d --build
+# 敏感值从同目录 .env 读取(先复制 .env.example 为 .env 并填写)
+name: blog
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: blog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Shanghai
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --lower-case-table-names=1
+    ports:
+      - "127.0.0.1:3306:3306"      # 只允许本机访问(备份用),外网走 nginx
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    container_name: blog-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: 128m
+
+  es:
+    build: ./es
+    image: blog-es:7.17.28
+    container_name: blog-es
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    mem_limit: 1g
+
+  backend:
+    build: ./backend
+    image: blog-backend:1.0
+    container_name: blog-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      es:
+        condition: service_healthy
+    environment:
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "127.0.0.1:8091:8080"      # 宿主 8091,容器内 8080(nginx 走内部网络不受影响)
+    volumes:
+      - uploads:/var/blog/uploads
+      - ./backend/application-prod.yml:/app/application-prod.yml
+    mem_limit: 512m
+
+  nginx:
+    build: ./nginx
+    image: blog-nginx:1.0
+    container_name: blog-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "8092:8092"        # 管理后台(需要在阿里云安全组放行 8092)
+    mem_limit: 64m
+
+volumes:
+  mysql-data:
+  redis-data:
+  es-data:
+  uploads:

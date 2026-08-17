@@ -39,10 +39,13 @@ note
 uploads
 
 /CLAUDE.md
+.claude/
+user-startup.log
 
 # 部署产物(二进制/敏感,不提交)
 deploy/.env
 deploy/backend/app.jar
 deploy/nginx/dist/
+deploy/nginx/admin-dist/
 deploy/es/analysis-ik/
 deploy/es/config-analysis-ik/
