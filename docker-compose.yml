@@ -1,0 +1,45 @@
+services:
+  mysql:
+    image: mysql:8.0              # 从 Docker Hub 拉取 MySQL 8.0 镜像
+    container_name: mysql-blog    # 容器名(docker 中看到的)
+#    restart: always               # 自动重启
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    volumes:
+      - mysql-data:/var/lib/mysql # 数据持久化: mysql-data 卷存 MySQL 数据,容器删了数据不会丢
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci #支持 UTF-8
+
+  redis:
+    image: redis:7.4-alpine       # Redis 镜像
+    container_name: redis-blog
+#    restart: always
+    ports:
+      - "6379:6379"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.28 # ES 官方镜像
+    container_name: es-blog
+#    restart: always
+    ports:
+      - "9200:9200"               # HTTP API 端口
+      - "9300:9300"               # 集群通信端口
+    environment:
+      - discovery.type=single-node      # 单节点模式(不加人集群)
+      - xpack.security.enabled=false    # 关闭认证
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m  # JVM 堆内存
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.28 #Kibana 可视化工具
+    container_name: kibana-blog
+#    restart: always
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Kibana 连接 9200 端口
+    depends_on:
+      - elasticsearch
+
+volumes:
+  mysql-data:

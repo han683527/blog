@@ -1,0 +1,49 @@
+# 生产配置(挂载进容器,覆盖 jar 内置的同名文件)
+# 数据库/Redis/ES 都用 docker-compose 里的服务名访问,不需要 IP
+# 敏感值(MYSQL_PASSWORD/MAIL_*/JWT_SECRET)由 docker-compose 从 .env 注入环境变量
+server:
+  port: 8080
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:mysql://mysql:3306/blog?createDatabaseIfNotExist=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: redis
+      port: 6379
+  elasticsearch:
+    uris: http://es:9200
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+upload:
+  path: /var/blog/uploads
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.example.blog.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expire: 604800000
+  refresh-token-expire: 604800000
