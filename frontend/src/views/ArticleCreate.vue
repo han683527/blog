@@ -33,6 +33,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createArticle, updateArticle, getArticle } from '@/api/articles'
+import { authFetch } from '@/api/index'
 import { getCategories } from '@/api/category'
 import { getTags } from '@/api/tag'
 import { ElMessage } from "element-plus";
@@ -130,11 +131,8 @@ function initVditor(content) {
       handler: async (files) => {
         const formData = new FormData()
         formData.append('file', files[0])
-        const res = await fetch('/article/image', {
+        const res = await authFetch('/article/image', {
           method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('accessToken')
-          },
           body: formData
         })
         const json = await res.json()

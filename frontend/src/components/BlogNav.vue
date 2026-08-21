@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import {ref, onMounted, watch} from 'vue'
+import {ref, onMounted, onUnmounted, watch} from 'vue'
 import {useRouter, useRoute} from 'vue-router'
 import {getUser} from '@/api/user'
 import {getNotifications, markAsRead, markAllAsRead, getUnreadCount} from "@/api/notifications"
@@ -93,7 +93,22 @@ async function fetchUser() {
   }
 }
 
-onMounted(fetchUser)
+function handleAuthLogout() {
+  user.value = null
+  disconnectSSE()
+}
+
+onMounted(() => {
+  fetchUser()
+  window.addEventListener('auth-token-refreshed', connectSSE)
+  window.addEventListener('auth-logout', handleAuthLogout)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('auth-token-refreshed', connectSSE)
+  window.removeEventListener('auth-logout', handleAuthLogout)
+  disconnectSSE()
+})
 
 watch(() => route.path, () => {
   if (localStorage.getItem('accessToken') && !user.value) {
